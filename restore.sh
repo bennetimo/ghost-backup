@@ -7,7 +7,7 @@ DB_ARCHIVE_MATCH='db'
 # Ghost files location
 GHOST_LOCATION='/var/lib/ghost'
 
-usage() { echo "Usage: ghost-restore [-i (interactive)] [-d <yyyymmdd>]" 1>&2; exit 1; }
+usage() { echo "Usage: ghost-restore [-i (interactive)] [-d <yyyymmdd-hhmm>]" 1>&2; exit 1; }
 
 # Restore the database from the given archive file
 restoreDB () {
@@ -16,7 +16,7 @@ restoreDB () {
   DB=${DB_TYPE:-"sqlite3"}
   case $DB in
     "sqlite3")
-      cd $GHOST_LOCATION && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
+      cd $GHOST_LOCATION/data && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
       echo "...restored ghost DB archive $RESTORE_FILE"
       ;;
     "mysql")
@@ -41,7 +41,7 @@ restoreDB () {
 restoreGhost () {
   RESTORE_FILE=$1
   echo "removing ghost files in $GHOST_LOCATION"
-  rm -r $GHOST_LOCATION/*
+  rm -r $GHOST_LOCATION/apps/ $GHOST_LOCATION/images/ $GHOST_LOCATION/themes/ $GHOST_LOCATION/config.js #Do not remove /data
   echo "restoring ghost files from archive file: $RESTORE_FILE"
   tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION
   echo "restore complete"
@@ -75,11 +75,11 @@ chooseFile () {
   done
 }
 
-# Attempt to restore ghost and db files from a given yyyymmdd date
+# Attempt to restore ghost and db files from a given yyyymmdd-hhmm date
 restoreDate () {
   DATE=$1
   GHOST_ARCHIVE="$BACKUP_LOCATION/backup-ghost_$DATE.tar.gz"
-  DB_ARCHIVE="$BACKUP_LOCATION/backup-db_$DATE.sql.gz"
+  DB_ARCHIVE="$BACKUP_LOCATION/backup-db_$DATE.gz"
 
   if [ ! -f $GHOST_ARCHIVE ]; then
       echo "The ghost archive file $GHOST_ARCHIVE does not exist. Aborting."
