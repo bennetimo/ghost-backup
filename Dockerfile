@@ -4,7 +4,7 @@ MAINTAINER Tim Bennett
 
 RUN \
   apt-get update && \
-  apt-get install -y mysql-client cron
+  apt-get install -y mysql-client cron sqlite3
 
 # Default location for storing backups
 ENV BACKUP_LOCATION "/backups"
