@@ -13,10 +13,19 @@ RUN mkdir $BACKUP_LOCATION
 
 VOLUME $BACKUP_LOCATION
 
+# By default, create a backup once a day at 3am
+ENV BACKUP_TIME 0 3 * * *
+
+# Setup the entrypoint script for initiating the crontab
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Add the backup/restore scripts
 COPY backup.sh /bin/ghost-backup
 COPY restore.sh /bin/ghost-restore
 RUN chmod +x /bin/ghost-backup
 RUN chmod +x /bin/ghost-restore
 
-CMD "true"
+ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ["cron", "-f"]
