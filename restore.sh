@@ -12,8 +12,28 @@ usage() { echo "Usage: ghost-restore [-i (interactive)] [-d <yyyymmdd>]" 1>&2; e
 # Restore the database from the given archive file
 restoreDB () {
   RESTORE_FILE=$1
-  echo "restoring data from mysql dump file: $RESTORE_FILE"
-  gunzip < $RESTORE_FILE | mysql -u$MYSQL_ENV_MYSQL_USER -p $MYSQL_ENV_MYSQL_DATABASE -p$MYSQL_ENV_MYSQL_ROOT_PASSWORD -h mysql 
+
+  DB=${DB_TYPE:-"sqlite3"}
+  case $DB in
+    "sqlite3")
+      cd $GHOST_LOCATION && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
+      echo "...restored ghost DB archive $RESTORE_FILE"
+      ;;
+    "mysql")
+      echo "restoring data from mysql dump file: $RESTORE_FILE"
+      # If container has been linked correctly, these environment variables should be available
+      if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then echo "Error: MYSQL_ENV_MYSQL_USER not set. Have you linked in the mysql/mariadb container?"; echo "Finished: FAILURE"; exit 1; fi
+      if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then echo "Error: MYSQL_ENV_MYSQL_DATABASE not set. Have you linked in the mysql/mariadb container?"; echo "Finished: FAILURE"; exit 1; fi
+      if [ -z "$MYSQL_ENV_MYSQL_ROOT_PASSWORD" ]; then echo "Error: MYSQL_ENV_MYSQL_PASSWORD not set. Have you linked in the mysql/mariadb container?"; echo "Finished: FAILURE"; exit 1; fi
+      gunzip < $RESTORE_FILE | mysql -u$MYSQL_ENV_MYSQL_USER -p $MYSQL_ENV_MYSQL_DATABASE -p$MYSQL_ENV_MYSQL_ROOT_PASSWORD -h mysql 
+      echo "...restored ghost DB archive $RESTORE_FILE"
+      ;;
+    *)
+      echo "Database type '$DB' not recognised. Have you set the environment variable $DB_TYPE correctly? (sqlite3 | mysql)"
+      exit 1
+      ;;
+  esac
+  
   echo "restore complete"
 }
 
