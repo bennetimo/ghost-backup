@@ -17,6 +17,7 @@ restoreDB () {
   echo "restore complete"
 }
 
+# Restore the ghost files (themes etc) from the given archive file
 restoreGhost () {
   RESTORE_FILE=$1
   echo "removing ghost files in $GHOST_LOCATION"
@@ -54,6 +55,7 @@ chooseFile () {
   done
 }
 
+# Attempt to restore ghost and db files from a given yyyymmdd date
 restoreDate () {
   DATE=$1
   GHOST_ARCHIVE="$BACKUP_LOCATION/backup-ghost_$DATE.tar.gz"
