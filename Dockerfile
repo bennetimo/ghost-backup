@@ -12,6 +12,9 @@ ENV BACKUP_LOCATION "/backups"
 # Default number of complete backups to retain (one backup = one db archive and one files archive)
 ENV BACKUPS_RETAIN_LIMIT 10
 
+# Default location for the log file
+ENV LOG_LOCATION "/var/log/ghost-backup.log"
+
 RUN mkdir $BACKUP_LOCATION
 
 VOLUME $BACKUP_LOCATION
@@ -32,4 +35,4 @@ RUN chmod +x /bin/ghost-restore
 ENTRYPOINT ["/entrypoint.sh"]
 
 #To workaround tail -F behavior (which says "has been replaced with a remote file. giving up on this name"), create and truncate log file on start up
-CMD ["sh", "-c", "cron && truncate -s0 /var/log/cron.log; tail -n0 -F /var/log/cron.log"]
+CMD ["sh", "-c", "cron && truncate -s0 $LOG_LOCATION; tail -n0 -F $LOG_LOCATION"]

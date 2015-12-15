@@ -20,7 +20,7 @@ if [[ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ]]; then
 	BACKUP_LOCATION=$BACKUP_LOCATION
 	BACKUPS_RETAIN_LIMIT=$BACKUPS_RETAIN_LIMIT
 	$MYSQL_ENVS
-	$BACKUP_TIME ghost-backup >> /var/log/cron.log 2>&1
+	$BACKUP_TIME ghost-backup >> $LOG_LOCATION 2>&1
 	EOF
   } | crontab -
 fi
