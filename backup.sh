@@ -30,14 +30,24 @@ backupDB () {
   esac
 }
 
+# Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhost () {
   echo "Creating ghost files archive..."
   tar cvfz "$BACKUP_LOCATION/backup-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='data' . #Exclude the /data directory (we back that up separately)
   echo "...ghost files archive created at: $BACKUP_LOCATION/backup-ghost_$NOW.tar.gz"
 }
 
+# Purge the backups directory so we only keep the most recent backups
+purgeOldBackups () {
+  # Each backup contains 2 files, one each for the db and file archives
+  RETAIN_FILES=$((2 * $BACKUPS_RETAIN_LIMIT))
+  # Remove all the backup files, apart from the RETAIN_FILES most recent ones
+  cd $BACKUP_LOCATION && (ls -t | head -n $RETAIN_FILES; ls) | sort | uniq -u | xargs --no-run-if-empty rm
+}
+
 # Initiate the backup
 backupGhost
 backupDB
+purgeOldBackups
 
 echo "Completed backup to $BACKUP_LOCATION"

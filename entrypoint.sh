@@ -7,6 +7,7 @@ if [[ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ]]; then
   {
   	cat <<-EOF
 	BACKUP_LOCATION=$BACKUP_LOCATION
+	BACKUPS_RETAIN_LIMIT=$BACKUPS_RETAIN_LIMIT
 	$BACKUP_TIME ghost-backup
 	EOF
   } | crontab -

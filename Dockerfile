@@ -9,6 +9,9 @@ RUN \
 # Default location for storing backups
 ENV BACKUP_LOCATION "/backups"
 
+# Default number of complete backups to retain (one backup = one db archive and one files archive)
+ENV BACKUPS_RETAIN_LIMIT 10
+
 RUN mkdir $BACKUP_LOCATION
 
 VOLUME $BACKUP_LOCATION
