@@ -6,11 +6,12 @@ if [[ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ]]; then
   
   # Add mysql env vars to the heredoc if that is the db being used
   if [ "$MYSQL_ENV_DB_CLIENT" == "mysql" ]; then 
-  	MYSQL_ENVS="
+  	read -r -d '' MYSQL_ENVS <<-EOF
 	MYSQL_ENV_DB_CLIENT=$MYSQL_ENV_DB_CLIENT
 	MYSQL_ENV_MYSQL_USER=$MYSQL_ENV_MYSQL_USER
 	MYSQL_ENV_MYSQL_DATABASE=$MYSQL_ENV_MYSQL_DATABASE
-	MYSQL_ENV_MYSQL_ROOT_PASSWORD=$MYSQL_ENV_MYSQL_ROOT_PASSWORD"
+	MYSQL_ENV_MYSQL_ROOT_PASSWORD=$MYSQL_ENV_MYSQL_ROOT_PASSWORD
+	EOF
   else
   	MYSQL_ENVS=""
   fi
