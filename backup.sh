@@ -8,12 +8,11 @@ BACKUP_FILE_PREFIX="backup"
 
 # Backup the ghost DB (either sqlite3 or mysql)
 backupDB () {
-  echo "Creating ghost database archive..."
+  echo " creating ghost db archive..."
   DB=${MYSQL_ENV_DB_CLIENT:-"sqlite3"}
   case $DB in
     "sqlite3")
       cd $GHOST_LOCATION/data && sqlite3 ghost.db ".backup temp.db" && gzip -c temp.db > "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz" && rm temp.db
-      echo "...ghost DB archive created at: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz"
       ;;
     "mysql")
       # If container has been linked correctly, these environment variables should be available
@@ -22,20 +21,20 @@ backupDB () {
       if [ -z "$MYSQL_ENV_MYSQL_ROOT_PASSWORD" ]; then echo "Error: MYSQL_ENV_MYSQL_PASSWORD not set. Have you linked in the mysql/mariadb container?"; echo "Finished: FAILURE"; exit 1; fi
       mysqldump -h mysql --single-transaction -u $MYSQL_ENV_MYSQL_USER --password=$MYSQL_ENV_MYSQL_ROOT_PASSWORD $MYSQL_ENV_MYSQL_DATABASE | 
        gzip -c > $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.sql.gz
-      echo "...ghost DB archive created at: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz"
       ;;
     *)
       echo "Database type '$DB' not recognised. Have you set the environment variable $DB_TYPE correctly? (sqlite3 | mysql)"
       exit 1
       ;;
   esac
+  echo "...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz"
 }
 
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhost () {
-  echo "Creating ghost files archive..."
-  tar cvfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='data' . #Exclude the /data directory (we back that up separately)
-  echo "...ghost files archive created at: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
+  echo " creating ghost files archive..."
+  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='data' . #Exclude the /data directory (we back that up separately)
+  echo " ...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
 }
 
 # Purge the backups directory so we only keep the most recent backups
@@ -47,8 +46,9 @@ purgeOldBackups () {
 }
 
 # Initiate the backup
+echo "creating backup: $NOW..."
 backupGhost
 backupDB
 purgeOldBackups
 
-echo "Completed backup to $BACKUP_LOCATION"
+echo "completed backup to $BACKUP_LOCATION"

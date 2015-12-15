@@ -31,4 +31,5 @@ RUN chmod +x /bin/ghost-restore
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["cron", "-f"]
+#To workaround tail -F behavior (which says "has been replaced with a remote file. giving up on this name"), create and truncate log file on start up
+CMD ["sh", "-c", "cron && truncate -s0 /var/log/cron.log; tail -n0 -F /var/log/cron.log"]
