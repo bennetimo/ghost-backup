@@ -13,9 +13,10 @@ usage() { echo "Usage: ghost-restore [-i (interactive)] [-d <yyyymmdd-hhmm>]" 1>
 restoreDB () {
   RESTORE_FILE=$1
 
-  DB=${DB_TYPE:-"sqlite3"}
+  DB=${MYSQL_ENV_DB_CLIENT:-"sqlite3"}
   case $DB in
     "sqlite3")
+      echo "restoring data from sqlite dump file: $RESTORE_FILE"
       cd $GHOST_LOCATION/data && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
       echo "...restored ghost DB archive $RESTORE_FILE"
       ;;

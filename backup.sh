@@ -9,7 +9,7 @@ BACKUP_FILE_PREFIX="backup"
 # Backup the ghost DB (either sqlite3 or mysql)
 backupDB () {
   echo "Creating ghost database archive..."
-  DB=${DB_TYPE:-"sqlite3"}
+  DB=${MYSQL_ENV_DB_CLIENT:-"sqlite3"}
   case $DB in
     "sqlite3")
       cd $GHOST_LOCATION/data && sqlite3 ghost.db ".backup temp.db" && gzip -c temp.db > "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz" && rm temp.db
