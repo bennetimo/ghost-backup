@@ -26,7 +26,7 @@ ENV BACKUP_TIME 0 3 * * *
 ENV AUTOMATED_BACKUPS true
 
 # Ghost files location
-env GHOST_LOCATION "/var/lib/ghost"
+ENV GHOST_LOCATION "/var/lib/ghost"
 
 # -----------------------
 

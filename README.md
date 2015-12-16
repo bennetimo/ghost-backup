@@ -75,8 +75,10 @@ For example, if you wanted to backup at 2AM to the location /some/dir/backups, s
 ### Backup to Dropbox
 You can configure the backup location as you wish, which if used in conjunction with [bennetimo/docker-dropbox] will backup to a [Dropbox] folder.
 
-To do this, you need to have a dropbox container running:
-`docker run <your-dropbox-container>`
+To do this, you need to have a dropbox container running, linked to your account:
+`docker run -d --name dropbox bennetimo/docker-dropbox`
+
+> You need to link this container to your Dropbox account first, see [docker-dropbox quickstart]
 
 Then create your backup container using the Dropbox volume:
 `docker run --name ghost-backup -d --volumes-from <your-data-container> --volumes-from <your-dropbox-container> -e "BACKUP_LOCATION=/root/Dropbox" bennetimo/ghost-backup`
@@ -117,6 +119,7 @@ This container was inspired by [wordpress-backup]
  [cron expression]: https://en.wikipedia.org/wiki/Cron#Format
  [Dropbox]: https://www.dropbox.com/
  [bennetimo/docker-dropbox]: https://hub.docker.com/r/bennetimo/docker-dropbox/
+ [docker-dropbox quickstart]: https://github.com/bennetimo/docker-dropbox#quick-start
  [configuration]: http://support.ghost.org/config/#database
  [mariadb]: https://hub.docker.com/_/mariadb/
  [command line shell]: https://www.sqlite.org/cli.html
