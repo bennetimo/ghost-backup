@@ -50,10 +50,10 @@ This will display a menu with all of the available backup files. You can select 
 > Using interactive backup you can restore a DB archive separately to a Ghost files archive
 
 #### By date restore
-You can also backup by date:
+You can also restore by date:
 
-`docker exec -it ghost-backup restore -d <yyyyMMdd-hhmm>`
-This will restore the backup files (database and content) from yyyyMMdd-hhmm, if found. 
+`docker exec -it ghost-backup restore -d <yyyymmdd-hhmm>`
+This will restore the backup files (database and content) from yyyymmdd-hhmm, if found. 
 
 ### Advanced Configuration
 ghost-backup has a number of options which can be configured as you need. 
@@ -98,6 +98,7 @@ Every time you want to take a backup. You can restore as normal (described above
 
 ### Using ghost-backup for cloning an environment locally
 You can use ghost-backup to create a local test environment for your blog, with all the posts and content. 
+
 1. Setup your dockerised ghost blog
 2. Setup the ghost-backup container on your blog as described in this readme, with e.g. Dropbox as the backup location
 3. Create a local dockerised ghost blog
