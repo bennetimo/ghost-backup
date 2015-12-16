@@ -52,7 +52,7 @@ This will display a menu with all of the available backup files. You can select 
 #### By date restore
 You can also restore by date:
 
-`docker exec -it ghost-backup restore -d <yyyymmdd-hhmm>`
+`docker exec ghost-backup restore -d <yyyymmdd-hhmm>`
 This will restore the backup files (database and content) from yyyymmdd-hhmm, if found. 
 
 ### Advanced Configuration
