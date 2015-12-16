@@ -7,7 +7,7 @@ DB_ARCHIVE_MATCH='db'
 # Ghost files location
 GHOST_LOCATION='/var/lib/ghost'
 
-usage() { echo "Usage: ghost-restore [-i (interactive)] [-d <yyyymmdd-hhmm>]" 1>&2; exit 1; }
+usage() { echo "Usage: restore [-i (interactive)] [-d <yyyymmdd-hhmm>]" 1>&2; exit 1; }
 
 # Restore the database from the given archive file
 restoreDB () {
