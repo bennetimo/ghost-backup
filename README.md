@@ -87,7 +87,7 @@ That's it. Now if your Dropbox container has been linked correctly to your accou
 
 ### View the logs
 `docker logs ghost-backup`
-Will display logs of all of the *automated* backup runs. Any manual run will not be be in the log file. By default the log file is at: `/var/log/ghost-backup.log`
+Will display logs of all of backup runs (manual and automated) and restore operations. By default the log file is at: `/var/log/ghost-backup.log`
 
 ### Disabling automated backups
 If you want to disable automated backups and just perform them manually as necessary, then you can stop the crontab installation by starting your container as:
