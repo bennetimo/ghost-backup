@@ -21,10 +21,10 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Add the backup/restore scripts
-COPY backup.sh /bin/ghost-backup
-COPY restore.sh /bin/ghost-restore
-RUN chmod +x /bin/ghost-backup
-RUN chmod +x /bin/ghost-restore
+COPY backup.sh /bin/backup
+COPY restore.sh /bin/restore
+RUN chmod +x /bin/backup
+RUN chmod +x /bin/restore
 
 ENTRYPOINT ["/entrypoint.sh"]
 

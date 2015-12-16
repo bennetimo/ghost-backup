@@ -17,12 +17,12 @@ if [[ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ]]; then
   else
   	MYSQL_ENVS=""
   fi
-  # Note: Must use tabs with indented 'here' scripts.
+
   {
   	cat <<-EOF
 	BACKUP_LOCATION=$BACKUP_LOCATION
 	BACKUPS_RETAIN_LIMIT=$BACKUPS_RETAIN_LIMIT
-	$BACKUP_TIME $MYSQL_ENVS ghost-backup >> $LOG_LOCATION 2>&1
+	$BACKUP_TIME $MYSQL_ENVS /bin/backup >> $LOG_LOCATION 2>&1
 	EOF
   } | crontab -
 fi
