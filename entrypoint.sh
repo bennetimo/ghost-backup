@@ -5,7 +5,11 @@ if [ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ] && [ "$AUTOMATED_
   echo "Intalling cron entry to start ghost-backup at: $BACKUP_TIME"
   
   # Add mysql env vars to the heredoc if that is the db being used
-  if [ "$MYSQL_ENV_DB_CLIENT" == "mysql" ]; then 
+  if [ -z $MYSQL_NAME ]; then
+  	# sqlite
+  	MYSQL_ENVS=""
+  else
+  	# mysql/mariadb
   	cat <<-EOF>~/mysql.env
 	MYSQL_ENV_DB_CLIENT=$MYSQL_ENV_DB_CLIENT
 	MYSQL_ENV_MYSQL_USER=$MYSQL_ENV_MYSQL_USER
@@ -14,8 +18,6 @@ if [ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ] && [ "$AUTOMATED_
 	EOF
 	MYSQL_ENVS=". ~/mysql.env; "
 	chmod 600 ~/mysql.env
-  else
-  	MYSQL_ENVS=""
   fi
 
   {
