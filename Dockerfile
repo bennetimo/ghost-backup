@@ -25,6 +25,9 @@ ENV BACKUP_TIME 0 3 * * *
 # Whether to install the crontab or not
 ENV AUTOMATED_BACKUPS true
 
+# Ghost files location
+GHOST_LOCATION "/var/lib/ghost"
+
 # -----------------------
 
 RUN mkdir $BACKUP_LOCATION

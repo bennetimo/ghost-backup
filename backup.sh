@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Ghost files location
-GHOST_LOCATION='/var/lib/ghost'
-
 NOW=`date '+%Y%m%d-%H%M'`
 BACKUP_FILE_PREFIX="backup"
 

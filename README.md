@@ -64,6 +64,7 @@ ghost-backup has a number of options which can be configured as you need.
 | BACKUP_LOCATION       | "/backups"    | Where the backups are written to|
 | BACKUPS_RETAIN_LIMIT  | 30            | How many backups to keep. Oldest are removed first|
 | LOG_LOCATION          | "/var/log/ghost-backup.log" | Location of the log file |
+| GHOST_LOCATION		| "/var/lib/ghost" | Location of ghost content and db files |
 
 For example, if you wanted to backup at 2AM to the location /some/dir/backups, storing 10 days of backups you would use:
 
