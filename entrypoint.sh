@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install the crontab for ghost-backup if it does not exist already
-if [[ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ]]; then
+if [ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ] && [ "$AUTOMATED_BACKUPS" == "true" ]; then
   echo "Intalling cron entry to start ghost-backup at: $BACKUP_TIME"
   
   # Add mysql env vars to the heredoc if that is the db being used
