@@ -6,9 +6,14 @@ GHOST_LOCATION='/var/lib/ghost'
 NOW=`date '+%Y%m%d-%H%M'`
 BACKUP_FILE_PREFIX="backup"
 
+# Simple log, write to stdout
+log () {
+  echo "`date -u`: $1" | tee -a $LOG_LOCATION
+}
+
 # Backup the ghost DB (either sqlite3 or mysql)
 backupDB () {
-  echo " creating ghost db archive..."
+  log " creating ghost db archive..."
   # Test the env that is set if a mysql container is linked
   if [ -z $MYSQL_NAME ]; then
     # sqlite
@@ -16,21 +21,21 @@ backupDB () {
   else
     # mysql/mariadb
     # If container has been linked correctly, these environment variables should be available
-    if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then echo "Error: MYSQL_ENV_MYSQL_USER not set. Have you linked in the mysql/mariadb container?"; echo "Finished: FAILURE"; exit 1; fi
-    if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then echo "Error: MYSQL_ENV_MYSQL_DATABASE not set. Have you linked in the mysql/mariadb container?"; echo "Finished: FAILURE"; exit 1; fi
-    if [ -z "$MYSQL_ENV_MYSQL_ROOT_PASSWORD" ]; then echo "Error: MYSQL_ENV_MYSQL_PASSWORD not set. Have you linked in the mysql/mariadb container?"; echo "Finished: FAILURE"; exit 1; fi
+    if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then log "Error: MYSQL_ENV_MYSQL_USER not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
+    if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then log "Error: MYSQL_ENV_MYSQL_DATABASE not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
+    if [ -z "$MYSQL_ENV_MYSQL_ROOT_PASSWORD" ]; then log "Error: MYSQL_ENV_MYSQL_PASSWORD not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
     mysqldump -h mysql --single-transaction -u $MYSQL_ENV_MYSQL_USER --password=$MYSQL_ENV_MYSQL_ROOT_PASSWORD $MYSQL_ENV_MYSQL_DATABASE | 
      gzip -c > $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.sql.gz
    fi
 
-  echo "...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz"
+  log "...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz"
 }
 
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhost () {
-  echo " creating ghost files archive..."
-  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='data' . #Exclude the /data directory (we back that up separately)
-  echo " ...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
+  log " creating ghost files archive..."
+  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='data' . 2>&1 | tee -a $LOG_LOCATION #Exclude the /data directory (we back that up separately)
+  log " ...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
 }
 
 # Purge the backups directory so we only keep the most recent backups
@@ -42,9 +47,9 @@ purgeOldBackups () {
 }
 
 # Initiate the backup
-echo "creating backup: $NOW..."
+log "creating backup: $NOW..."
 backupGhost
 backupDB
 purgeOldBackups
 
-echo "completed backup to $BACKUP_LOCATION"
+log "completed backup to $BACKUP_LOCATION"
