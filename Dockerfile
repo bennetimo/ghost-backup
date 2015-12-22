@@ -44,6 +44,9 @@ COPY restore.sh /bin/restore
 RUN chmod +x /bin/backup
 RUN chmod +x /bin/restore
 
+# Clean up
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 ENTRYPOINT ["/entrypoint.sh"]
 
 #To workaround tail -F behavior (which says "has been replaced with a remote file. giving up on this name"), create and truncate log file on start up
