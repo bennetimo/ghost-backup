@@ -32,11 +32,11 @@ Where:
 
 > The linked mysql container needs to have the alias 'mysql' as shown.
 
-The following environment variables should be set on the mysql container, which is what ghost-backup will use to connect:
+The following environment variables should be set on the mysql container. ghost-backup will pick them up automatically through container linking so it can talk to the database:
 
- * MYSQL_ENV_MYSQL_USER
- * MYSQL_ENV_MYSQL_PASSWORD
- * MYSQL_ENV_MYSQL_DATABASE
+ * MYSQL_USER
+ * MYSQL_PASSWORD
+ * MYSQL_DATABASE
 
 ### Perform a manual backup
 `docker exec ghost-backup backup`
