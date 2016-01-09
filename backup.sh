@@ -10,13 +10,14 @@ log () {
 
 # Backup the ghost DB (either sqlite3 or mysql)
 backupDB () {
-  log " creating ghost db archive..."
   # Test the env that is set if a mysql container is linked
   if [ -z $MYSQL_NAME ]; then
     # sqlite
+    log " creating ghost db archive (sqlite)..."
     cd $GHOST_LOCATION/data && sqlite3 ghost.db ".backup temp.db" && gzip -c temp.db > "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz" && rm temp.db
   else
     # mysql/mariadb
+    log " creating ghost db archive (mysql)..."
     # If container has been linked correctly, these environment variables should be available
     if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then log "Error: MYSQL_ENV_MYSQL_USER not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
     if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then log "Error: MYSQL_ENV_MYSQL_DATABASE not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
