@@ -46,7 +46,7 @@ This will create an immediate backup. You should now have two archives created i
 >Note that backups are are tagged with the date and time in the form yyyymmdd-hhmm, therefore if two backups are created in the same minute then the second will overwrite the first.
 
 ### Restore a backup
-A backup is no good if it can't be restored :) You can do that in two ways:
+A backup is no good if it can't be restored :) You can do that in three ways:
 
 #### Interactive restore
 You can launch an interactive backup menu using:
@@ -58,8 +58,15 @@ This will display a menu with all of the available backup files. You can select 
 #### By date restore
 You can also restore by date:
 
-`docker exec ghost-backup restore -d <yyyymmdd-hhmm>`
+`docker exec ghost-backup restore -d yyyymmdd-hhmm
 This will restore the backup files (database and content) from yyyymmdd-hhmm, if found. 
+
+#### By file restore
+You can restore a given file mounted to the container:
+
+`docker exec ghost-backup restore -f /path/to/file/filename`
+
+Ghost restore will treat filenames containing 'db' as database files, and filenames containing 'ghost' as archive files. 
 
 ### Advanced Configuration
 ghost-backup has a number of options which can be configured as you need. 
@@ -77,6 +84,18 @@ For example, if you wanted to backup at 2AM to the location /some/dir/backups, s
 `docker run --name ghost-backup -d --volumes-from <your-data-container> -e "BACKUP_LOCATION=/some/dir/backups" -e "BACKUP_TIME=0 2 * * *" -e "BACKUPS_RETAIN_LIMIT=10"  bennetimo/ghost-backup`
 
 > This example is for Ghost using sqlite. If you're using mysql/mariadb just add the linked mysql containers as described above.
+
+#### Disable backup types
+
+By default, the backup will have a Ghost files archive, a DB archive, and purge any excess old backups specified by the `BACKUPS_RETAIN_LIMIT`. Each of these can be disabled with command arguments:
+
+ * -F //Do not include a ghost files archive
+ * -D //Do not include a DB archive
+ * -P //Do not purge old files
+
+For example to perform a backup of just the DB with no purge:
+
+`docker exec ghost-backup backup -FP`
 
 ### Backup to Dropbox
 You can configure the backup location as you wish, which if used in conjunction with [bennetimo/docker-dropbox] will backup to a [Dropbox] folder.

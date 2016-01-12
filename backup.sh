@@ -1,7 +1,11 @@
 #!/bin/bash
 
+set -e
+
 NOW=`date '+%Y%m%d-%H%M'`
 BACKUP_FILE_PREFIX="backup"
+
+usage() { echo "Usage: backup [-f (exclude ghost files)] [-d (exclude db)] [-p (do not purge old backups)]" 1>&2; exit 0; }
 
 # Simple log, write to stdout
 log () {
@@ -44,10 +48,41 @@ purgeOldBackups () {
   cd $BACKUP_LOCATION && (ls -t | grep $BACKUP_FILE_PREFIX | head -n $RETAIN_FILES; ls | grep $BACKUP_FILE_PREFIX) | sort | uniq -u | xargs --no-run-if-empty rm
 }
 
+#By default do a complete backup with purging
+include_files=true
+include_db=true
+purge=true
+while getopts "FDP" opt; do
+  case $opt in
+    F)
+      include_files=false
+      log "excluding ghost files archive in backup"
+      ;;
+    D)
+      include_db=false
+      log "excluding db archive in backup"
+      ;;
+    P)
+      purge=false
+      log "not purging old backups (limit is set to $BACKUPS_RETAIN_LIMIT)"
+      ;;
+    \?)
+      usage
+      exit 0
+      ;;
+  esac
+done
+
 # Initiate the backup
 log "creating backup: $NOW..."
-backupGhost
-backupDB
-purgeOldBackups
+if [ $include_files = true ]; then
+  backupGhost
+fi
+if [ $include_db = true ]; then
+  backupDB
+fi
+if [ $purge = true ]; then
+  purgeOldBackups
+fi
 
 log "completed backup to $BACKUP_LOCATION"

@@ -1,11 +1,13 @@
 #!/bin/bash
 
+set -e
+
 # Match string to indicate a ghost archive
 GHOST_ARCHIVE_MATCH='ghost'
 # Match string to indicate a db archive
 DB_ARCHIVE_MATCH='db'
 
-usage() { echo "Usage: restore [-i (interactive)] [-d <yyyymmdd-hhmm>]" 1>&2; exit 1; }
+usage() { echo "Usage: restore [-i (interactive)] [-d yyyymmdd-hhmm] [-f filename]" 1>&2; exit 0; }
 
 # Simple log, write to stdout
 log () {
@@ -29,7 +31,7 @@ restoreDB () {
     if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then log "Error: MYSQL_ENV_MYSQL_USER not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
     if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then log "Error: MYSQL_ENV_MYSQL_DATABASE not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
     if [ -z "$MYSQL_ENV_MYSQL_PASSWORD" ]; then log "Error: MYSQL_ENV_MYSQL_PASSWORD not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
-    gunzip < $RESTORE_FILE | mysql -u$MYSQL_ENV_MYSQL_USER -p $MYSQL_ENV_MYSQL_DATABASE -p$MYSQL_ENV_MYSQL_PASSWORD -h mysql 
+    gunzip < $RESTORE_FILE | mysql -u$MYSQL_ENV_MYSQL_USER -p $MYSQL_ENV_MYSQL_DATABASE -p$MYSQL_ENV_MYSQL_PASSWORD -h mysql || exit 1
     log "...restored ghost DB archive $RESTORE_FILE"
   fi
   
@@ -59,13 +61,7 @@ chooseFile () {
           break;
           ;;
         *)
-          if [[ $choice =~ .*$DB_ARCHIVE_MATCH.* ]]; then
-            restoreDB $choice
-          elif [[ $choice =~ .*$GHOST_ARCHIVE_MATCH.* ]]; then
-            restoreGhost $choice
-          else
-            echo "unrecognised format - the file should be either a ghost files or db archive"
-          fi
+          restoreFile $choice
           ;;
         \?)
           echo "usage..."
@@ -94,7 +90,20 @@ restoreDate () {
   restoreDB $DB_ARCHIVE
 }
 
-while getopts "id:" opt; do
+# Determine whether file is db or ghost file and restore it
+restoreFile () {
+  FILE=$1
+  if [[ $FILE =~ .*$DB_ARCHIVE_MATCH.* ]]; then
+    restoreDB $FILE
+  elif [[ $FILE =~ .*$GHOST_ARCHIVE_MATCH.* ]]; then
+    restoreGhost $FILE
+  else
+    echo "unrecognised format - the file should be either a ghost files or db archive"
+  fi
+
+}
+
+while getopts "idf:" opt; do
   case $opt in
     i)
       chooseFile
@@ -104,6 +113,10 @@ while getopts "id:" opt; do
       restoreDate ${OPTARG}
       exit 0
       ;;
+    f)
+      restoreFile ${OPTARG}
+      exit 0
+      ;;  
     \?)
       usage
       exit 0
