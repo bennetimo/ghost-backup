@@ -68,6 +68,11 @@ You can restore a given file mounted to the container:
 
 Ghost restore will treat filenames containing 'db' as database files, and filenames containing 'ghost' as archive files. 
 
+#### In place restore
+By default the restore script will remove the ghost files from `GHOST_LOCATION` before restoring the archive, except for the database which is handled separately. 
+
+To restore without removing files first you can specificy the command argument capitalised, e.g. `-I, -D, -F`.
+
 ### Advanced Configuration
 ghost-backup has a number of options which can be configured as you need. 
 

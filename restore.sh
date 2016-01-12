@@ -6,6 +6,8 @@ set -e
 GHOST_ARCHIVE_MATCH='ghost'
 # Match string to indicate a db archive
 DB_ARCHIVE_MATCH='db'
+# Whether to extract the ghost files in place (without removing existing files first)
+IN_PLACE_RESTORE=false
 
 usage() { echo "Usage: restore [-i (interactive)] [-d yyyymmdd-hhmm] [-f filename]" 1>&2; exit 0; }
 
@@ -41,10 +43,17 @@ restoreDB () {
 # Restore the ghost files (themes etc) from the given archive file
 restoreGhost () {
   RESTORE_FILE=$1
-  log "removing ghost files in $GHOST_LOCATION"
-  rm -r $GHOST_LOCATION/apps/ $GHOST_LOCATION/images/ $GHOST_LOCATION/themes/ $GHOST_LOCATION/config.js #Do not remove /data
-  log "restoring ghost files from archive file: $RESTORE_FILE"
-  tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION 2>&1 | tee -a $LOG_LOCATION
+
+  if [ $IN_PLACE_RESTORE = true ]; then
+    log "restoring ghost files from archive file: $RESTORE_FILE"
+    tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION --keep-newer-files --warning=no-ignore-newer 2>&1 | tee -a $LOG_LOCATION
+  else
+    log "removing ghost files in $GHOST_LOCATION"
+    rm -r $GHOST_LOCATION/apps/ $GHOST_LOCATION/images/ $GHOST_LOCATION/themes/ $GHOST_LOCATION/config.js #Do not remove /data
+    log "restoring ghost files from archive file: $RESTORE_FILE"
+    tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION 2>&1 | tee -a $LOG_LOCATION
+  fi
+
   log "restore complete"
 }
 
@@ -103,9 +112,14 @@ restoreFile () {
 
 }
 
-while getopts "idf:" opt; do
+while getopts "idf:IDF:" opt; do
   case $opt in
     i)
+      chooseFile
+      exit 0
+      ;;
+    I)
+      IN_PLACE_RESTORE=true
       chooseFile
       exit 0
       ;;
@@ -113,7 +127,17 @@ while getopts "idf:" opt; do
       restoreDate ${OPTARG}
       exit 0
       ;;
+    D)
+      IN_PLACE_RESTORE=true
+      restoreDate ${OPTARG}
+      exit 0
+      ;;
     f)
+      restoreFile ${OPTARG}
+      exit 0
+      ;;  
+    F)
+      IN_PLACE_RESTORE=true
       restoreFile ${OPTARG}
       exit 0
       ;;  
@@ -125,6 +149,3 @@ while getopts "idf:" opt; do
 done
 
 usage
-
-
-
