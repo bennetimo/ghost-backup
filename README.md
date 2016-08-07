@@ -13,7 +13,7 @@ Create and run the ghost-backup container with the volumes from your Ghost data 
 
 Where:
 
-`<your-data-container>` is either your Ghost blog container, or a separate data-only container holding your blog files. Basically, wheverever your blog content lives.
+`<your-data-container>` is either your Ghost blog container, or a separate data-only container holding your blog files. Basically, wherever your blog content lives.
 
 That's it! This will create and run a container named 'ghost-backup' which will create a backup of your Ghost database and content files under /backups every day at 3am.
 
