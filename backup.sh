@@ -18,7 +18,7 @@ backupDB () {
   if [ -z $MYSQL_NAME ]; then
     # sqlite
     log " creating ghost db archive (sqlite)..."
-    cd $GHOST_LOCATION/data && sqlite3 ghost.db ".backup temp.db" && gzip -c temp.db > "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz" && rm temp.db
+    cd $GHOST_LOCATION/content/data && sqlite3 ghost.db ".backup temp.db" && gzip -c temp.db > "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz" && rm temp.db
   else
     # mysql/mariadb
     log " creating ghost db archive (mysql)..."
@@ -36,7 +36,8 @@ backupDB () {
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhost () {
   log " creating ghost files archive..."
-  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='data' . 2>&1 | tee -a $LOG_LOCATION #Exclude the /data directory (we back that up separately)
+  #Exclude  /content/data  (we back that up separately),  config.production.json (config is bind-mounted), current and versions (Ghost source files from docker image), and content.orig (created upon Ghost setup)
+  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='content/data' --exclude='content.orig' --exclude='current' --exclude='versions' --exclude='config.production.json' . 2>&1 | tee -a $LOG_LOCATION 
   log " ...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
 }
 

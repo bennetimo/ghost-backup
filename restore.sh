@@ -24,7 +24,7 @@ restoreDB () {
   if [ -z $MYSQL_NAME ]; then
     # sqlite
     log "restoring data from sqlite dump file: $RESTORE_FILE"
-    cd $GHOST_LOCATION/data && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
+    cd $GHOST_LOCATION/content/data && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
     log "...restored ghost DB archive $RESTORE_FILE"
   else
     # mysql/mariadb
@@ -49,7 +49,7 @@ restoreGhost () {
     tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION --keep-newer-files --warning=no-ignore-newer 2>&1 | tee -a $LOG_LOCATION
   else
     log "removing ghost files in $GHOST_LOCATION"
-    rm -r $GHOST_LOCATION/apps/ $GHOST_LOCATION/images/ $GHOST_LOCATION/themes/ $GHOST_LOCATION/config.js #Do not remove /data
+    rm -r $GHOST_LOCATION/content/apps/ $GHOST_LOCATION/content/images/ $GHOST_LOCATION/content/themes/ #Do not remove /data or config.production.json
     log "restoring ghost files from archive file: $RESTORE_FILE"
     tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION 2>&1 | tee -a $LOG_LOCATION
   fi
