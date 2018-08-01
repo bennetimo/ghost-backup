@@ -37,7 +37,7 @@ backupDB () {
 backupGhost () {
   log " creating ghost files archive..."
   #Exclude  /content/data  (we back that up separately),  config.production.json (config is bind-mounted), current and versions (Ghost source files from docker image), and content.orig (created upon Ghost setup)
-  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='content/data' --exclude='content.orig' --exclude='current' --exclude='versions' --exclude='config.production.json' . 2>&1 | tee -a $LOG_LOCATION 
+  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='content/data' --exclude='content.orig' --exclude='current' --exclude='versions' . 2>&1 | tee -a $LOG_LOCATION 
   log " ...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
 }
 
