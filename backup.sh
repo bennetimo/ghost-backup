@@ -36,7 +36,7 @@ backupDB () {
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhost () {
   log " creating ghost files archive..."
-  #Exclude  /content/data  (we back that up separately),  config.production.json (config is bind-mounted), current and versions (Ghost source files from docker image), and content.orig (created upon Ghost setup)
+  #Exclude  /content/data  (we back that up separately), current and versions (Ghost source files from docker image), and content.orig (created when Ghost was built)
   tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='content/data' --exclude='content.orig' --exclude='current' --exclude='versions' . 2>&1 | tee -a $LOG_LOCATION 
   log " ...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
 }
