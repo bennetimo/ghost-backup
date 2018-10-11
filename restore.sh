@@ -14,22 +14,20 @@ usage() { echo "Usage: restore [-i (interactive)] [-d yyyymmdd-hhmm] [-f filenam
 restoreDB () {
   RESTORE_FILE=$1
 
-  # Test the env that is set if a mysql container is linked
-  if [ -z $MYSQL_NAME ]; then
-    # sqlite
-    log "restoring data from sqlite dump file: $RESTORE_FILE"
-    cd $GHOST_LOCATION/content/data && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
-    log "...restored ghost DB archive $RESTORE_FILE"
-  else
+  # Check if we should restore a mysql or sqlite file
+  if [ $MYSQL_CONTAINER_LINKED = true ]; then
     # mysql/mariadb
     log "restoring data from mysql dump file: $RESTORE_FILE"
     # If container has been linked correctly, these environment variables should be available
 
-    gunzip < $RESTORE_FILE | mysql -u$MYSQL_ENV_MYSQL_USER -p $MYSQL_ENV_MYSQL_DATABASE -p$MYSQL_ENV_MYSQL_PASSWORD -h mysql || exit 1
-    log "...restored ghost DB archive $RESTORE_FILE"
+    gunzip < $RESTORE_FILE | mysql --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --user=$MYSQL_SERVICE_USER --password=$MYSQL_SERVICE_PASSWORD $MYSQL_SERVICE_DATABASE || exit 1
+  else
+    # sqlite
+    log "restoring data from sqlite dump file: $RESTORE_FILE"
+    cd $GHOST_LOCATION/content/data && gunzip -c $RESTORE_FILE > temp.db && sqlite3 ghost.db ".restore temp.db" && rm temp.db
   fi
 
-  log "restore complete"
+  log "...restore complete"
 }
 
 # Restore the ghost files (themes etc) from the given archive file
@@ -46,7 +44,7 @@ restoreGhost () {
     tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION --exclude='config.production.json' 2>&1 | tee -a $LOG_LOCATION
   fi
 
-  log "restore complete"
+  log "...restore complete"
 }
 
 # Restore the database from the given json file
@@ -55,24 +53,18 @@ restoreGhostJsonFile () {
 
   log "restoring data from ghost json export file: $RESTORE_FILE"
 
-  if [ -z "$GHOST_SERVICE" ]; then log "Error: GHOST_SERVICE not set. Set an environment variable for the service name of your ghost blog"; log "Finished: FAILURE"; exit 1; fi
-  if [ -z "$GHOST_PORT" ]; then log "Error: GHOST_PORT not set. Set an environment variable for the port your ghost blog is running on"; log "Finished: FAILURE"; exit 1; fi
-  if [ -z "$CLIENT_SLUG" ]; then log "Error: CLIENT_SLUG not set. Set an environment variable for the client to use to authenticate with the api (e.g. 'ghost-backup')"; log "Finished: FAILURE"; exit 1; fi
+  checkGhostAvailable
 
-  log "retrieving client secret for client: $CLIENT_SLUG"
-  CLIENT_SECRET=$(mysql -u $MYSQL_ENV_MYSQL_USER --password="$MYSQL_ENV_MYSQL_PASSWORD" -h mysql -s --raw --skip-column-names -e "select secret from $MYSQL_ENV_MYSQL_DATABASE.clients where slug='$CLIENT_SLUG'")
-  if [ -z "$CLIENT_SECRET" ]; then log "Error: Unable to retrieve the client secret for $CLIENT_SLUG from the database."; log "Finished: FAILURE"; exit 1; fi
+  if [ $GHOST_CONTAINER_LINKED = true ]; then
+    retrieveClientSecret
+    retrieveClientBearerToken
+    log " ...uploading and importing ghost json file..."
+    curl --silent --form "importfile=@$RESTORE_FILE" -H "Authorization: Bearer $BEARER_TOKEN" $GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/db
+  else
+    log "Error: Your ghost service was not found on the network. Configure GHOST_SERVICE_NAME and GHOST_SERVICE_PORT"; exit 1
+  fi
 
-  retrieveClientBearerToken
-
-  if [ -z "$BEARER_TOKEN" ]; then log "Error: Unable to retrieve an access token to communicate with the Ghost API. Check you have set the AUTH_EMAIL, AUTH_PASSWORD of a user configured in your ghost install"; log "Finished: FAILURE"; exit 1; fi
-
-  log "posting json file to the ghost restore api"
-
-  curl --form "importfile=@$RESTORE_FILE" \
-    -H "Authorization: Bearer $BEARER_TOKEN" $GHOST_SERVICE:$GHOST_PORT/ghost/api/v0.1/db/
-
-  log "restore complete"
+  log "...restore complete"
 }
 
 # Interactively choose a DB or ghost files archive to restore

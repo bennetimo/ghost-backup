@@ -60,13 +60,14 @@ retrieveClientSecret () {
     sql="select secret from clients where slug='$CLIENT_SLUG'"
 
     if [ $MYSQL_CONTAINER_LINKED = true ]; then
-        CLIENT_SECRET="not implemented"
+        CLIENT_SECRET=$(mysql --raw -s -N --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT \
+            --user=$MYSQL_SERVICE_USER --password=$MYSQL_SERVICE_PASSWORD --database=$MYSQL_SERVICE_DATABASE -e "$sql")
     else
         CLIENT_SECRET=$(sqlite3 $GHOST_LOCATION/content/data/$SQLITE_DB_NAME "$sql")
     fi
 
     if [ -z "$CLIENT_SECRET" ]; then log "Error: Unable to retrieve the client secret for $CLIENT_SLUG from the database."; log "Finished: FAILURE"; exit 1; fi
-    log " ...retrieved client secret"
+    log " ...retrieved client secret: $CLIENT_SECRET for client slug: $CLIENT_SLUG"
 }
 
 retrieveClientBearerToken () {
@@ -76,6 +77,8 @@ retrieveClientBearerToken () {
     -H "Content-Type: application/x-www-form-urlencoded" \
     -X POST -d "grant_type=password&username=$AUTH_EMAIL&password=$AUTH_PASSWORD&client_id=$CLIENT_SLUG&client_secret=$CLIENT_SECRET" \
     $GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/authentication/token | jq -r .access_token)
+
+    if [ -z "$BEARER_TOKEN" ]; then log "Error: Unable to retrieve an access token for the api. Check all your credentials are correct"; log "Finished: FAILURE"; exit 1; fi
 }
 
 

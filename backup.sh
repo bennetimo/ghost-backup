@@ -15,7 +15,7 @@ backupDB () {
     # mysql/mariadb
 
     log " creating ghost db archive (mysql)..."
-    mysqldump -h $MYSQL_SERVICE_NAME --single-transaction -u $MYSQL_SERVICE_USER --password=$MYSQL_SERVICE_PASSWORD $MYSQL_SERVICE_DATABASE |
+    mysqldump --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --single-transaction --user=$MYSQL_SERVICE_USER --password=$MYSQL_SERVICE_PASSWORD $MYSQL_SERVICE_DATABASE |
      gzip -c > $export_file
 
   else
