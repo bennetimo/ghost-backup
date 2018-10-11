@@ -75,7 +75,7 @@ retrieveClientBearerToken () {
     -H "Accept: application/json" \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -X POST -d "grant_type=password&username=$AUTH_EMAIL&password=$AUTH_PASSWORD&client_id=$CLIENT_SLUG&client_secret=$CLIENT_SECRET" \
-    $GHOST_SERVICE:$GHOST_PORT/ghost/api/v0.1/authentication/token | jq -r .access_token)
+    $GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/authentication/token | jq -r .access_token)
 }
 
 

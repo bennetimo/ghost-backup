@@ -39,7 +39,6 @@ backupGhost () {
 
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhostJsonFile () {
-  log " ...exporting ghost json file..."
   export_file="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.json"
 
   checkGhostAvailable
@@ -48,11 +47,10 @@ backupGhostJsonFile () {
     retrieveClientSecret
     retrieveClientBearerToken
     log " ...downloading ghost json file..."
-    curl --silent -o $export_file http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/db?access_token=$BEARER_TOKEN
+    curl --silent -L -o $export_file http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/db?access_token=$BEARER_TOKEN
     log " ...completed: $export_file"
   else
-    log "Error: Your ghost service was not found on the network. Make sure you have configured GHOST_SERVICE_NAME and GHOST_SERVICE_PORT correctly"; log "Finished: FAILURE";
-    exit 1;
+    log " ...skipping: Your ghost service was not found on the network. Configure GHOST_SERVICE_NAME and GHOST_SERVICE_PORT"
   fi
 
 }
