@@ -1,26 +1,26 @@
-FROM debian:jessie
+FROM debian:stretch
 
 MAINTAINER Tim Bennett
 
 RUN \
   apt-get update && \
-  apt-get install -y mysql-client cron sqlite3
+  apt-get install -y mysql-client cron sqlite3 curl jq
 
 # -----------------------
 # Default configuration
 # -----------------------
 
 # Location for storing backup archives
-ENV BACKUP_LOCATION "/backups"     
+ENV BACKUP_LOCATION "/backups"
 
-# Number of recent backups to retain (one backup = one db archive and one files archive)             
-ENV BACKUPS_RETAIN_LIMIT 30              
+# Number of recent backups to retain (one backup = one db archive and one files archive)
+ENV BACKUPS_RETAIN_LIMIT 30
 
-# Location of backup log (written after each automated backup)     
+# Location of backup log (written after each automated backup)
 ENV LOG_LOCATION "/var/log/ghost-backup.log"
 
-# Backup daily at 3am    
-ENV BACKUP_TIME 0 3 * * *    
+# Backup daily at 3am
+ENV BACKUP_TIME 0 3 * * *
 
 # Whether to install the crontab or not
 ENV AUTOMATED_BACKUPS true
