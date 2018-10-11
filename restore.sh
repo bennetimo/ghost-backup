@@ -2,19 +2,13 @@
 
 set -e
 
-# Match string to indicate a ghost archive
-GHOST_ARCHIVE_MATCH='ghost'
-# Match string to indicate a db archive
-DB_ARCHIVE_MATCH='db'
+#Load common vars
+source common.sh
+
 # Whether to extract the ghost files in place (without removing existing files first)
 IN_PLACE_RESTORE=false
 
 usage() { echo "Usage: restore [-i (interactive)] [-d yyyymmdd-hhmm] [-f filename]" 1>&2; exit 0; }
-
-# Simple log, write to stdout
-log () {
-  echo "`date -u`: $1" | tee -a $LOG_LOCATION
-}
 
 # Restore the database from the given archive file
 restoreDB () {
@@ -30,13 +24,11 @@ restoreDB () {
     # mysql/mariadb
     log "restoring data from mysql dump file: $RESTORE_FILE"
     # If container has been linked correctly, these environment variables should be available
-    if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then log "Error: MYSQL_ENV_MYSQL_USER not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
-    if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then log "Error: MYSQL_ENV_MYSQL_DATABASE not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
-    if [ -z "$MYSQL_ENV_MYSQL_PASSWORD" ]; then log "Error: MYSQL_ENV_MYSQL_PASSWORD not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
+
     gunzip < $RESTORE_FILE | mysql -u$MYSQL_ENV_MYSQL_USER -p $MYSQL_ENV_MYSQL_DATABASE -p$MYSQL_ENV_MYSQL_PASSWORD -h mysql || exit 1
     log "...restored ghost DB archive $RESTORE_FILE"
   fi
-  
+
   log "restore complete"
 }
 
@@ -57,6 +49,32 @@ restoreGhost () {
   log "restore complete"
 }
 
+# Restore the database from the given json file
+restoreGhostJsonFile () {
+  RESTORE_FILE=$1
+
+  log "restoring data from ghost json export file: $RESTORE_FILE"
+
+  if [ -z "$GHOST_SERVICE" ]; then log "Error: GHOST_SERVICE not set. Set an environment variable for the service name of your ghost blog"; log "Finished: FAILURE"; exit 1; fi
+  if [ -z "$GHOST_PORT" ]; then log "Error: GHOST_PORT not set. Set an environment variable for the port your ghost blog is running on"; log "Finished: FAILURE"; exit 1; fi
+  if [ -z "$CLIENT_SLUG" ]; then log "Error: CLIENT_SLUG not set. Set an environment variable for the client to use to authenticate with the api (e.g. 'ghost-backup')"; log "Finished: FAILURE"; exit 1; fi
+
+  log "retrieving client secret for client: $CLIENT_SLUG"
+  CLIENT_SECRET=$(mysql -u $MYSQL_ENV_MYSQL_USER --password="$MYSQL_ENV_MYSQL_PASSWORD" -h mysql -s --raw --skip-column-names -e "select secret from $MYSQL_ENV_MYSQL_DATABASE.clients where slug='$CLIENT_SLUG'")
+  if [ -z "$CLIENT_SECRET" ]; then log "Error: Unable to retrieve the client secret for $CLIENT_SLUG from the database."; log "Finished: FAILURE"; exit 1; fi
+
+  retrieveClientBearerToken
+
+  if [ -z "$BEARER_TOKEN" ]; then log "Error: Unable to retrieve an access token to communicate with the Ghost API. Check you have set the AUTH_EMAIL, AUTH_PASSWORD of a user configured in your ghost install"; log "Finished: FAILURE"; exit 1; fi
+
+  log "posting json file to the ghost restore api"
+
+  curl --form "importfile=@$RESTORE_FILE" \
+    -H "Authorization: Bearer $BEARER_TOKEN" $GHOST_SERVICE:$GHOST_PORT/ghost/api/v0.1/db/
+
+  log "restore complete"
+}
+
 # Interactively choose a DB or ghost files archive to restore
 chooseFile () {
   echo "Select DB or Ghost archive file to restore, or 'q' to quit"
@@ -66,7 +84,7 @@ chooseFile () {
   do
     [[ -z $FILENAME ]] && choice=$REPLY || choice=$FILENAME
     case $choice in
-        q|Q|exit) 
+        q|Q|exit)
           break;
           ;;
         *)
@@ -106,10 +124,11 @@ restoreFile () {
     restoreDB $FILE
   elif [[ $FILE =~ .*$GHOST_ARCHIVE_MATCH.* ]]; then
     restoreGhost $FILE
+  elif [[ $FILE =~ .*$GHOST_JSON_FILE_MATCH.* ]]; then
+    restoreGhostJsonFile $FILE
   else
-    echo "unrecognised format - the file should be either a ghost files or db archive"
+    echo "unrecognised format - the file should be either a ghost content archive, db archive, or exported ghost .json file"
   fi
-
 }
 
 while getopts "idf:IDF:" opt; do
@@ -135,12 +154,12 @@ while getopts "idf:IDF:" opt; do
     f)
       restoreFile ${OPTARG}
       exit 0
-      ;;  
+      ;;
     F)
       IN_PLACE_RESTORE=true
       restoreFile ${OPTARG}
       exit 0
-      ;;  
+      ;;
     \?)
       usage
       exit 0
