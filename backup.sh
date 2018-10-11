@@ -59,13 +59,26 @@ backupGhostJsonFile () {
 
 # Purge the backups directory so we only keep the most recent backups
 purgeOldBackups () {
-  log " purging old backups (set to retain the most recent $BACKUPS_RETAIN_LIMIT)"
+  log "purging old backups (set to retain the most recent $BACKUPS_RETAIN_LIMIT)"
   # Keep only the most recent number of db archives
-  cd $BACKUP_LOCATION && (ls -t | grep DB_ARCHIVE_MATCH | head -n $BACKUPS_RETAIN_LIMIT; ls | grep DB_ARCHIVE_MATCH) | sort | uniq -u | xargs --no-run-if-empty rm
+  purgeFiles $DB_ARCHIVE_MATCH "database"
   # Keep only the most recent number of ghost content archives
-  cd $BACKUP_LOCATION && (ls -t | grep GHOST_ARCHIVE_MATCH | head -n $BACKUPS_RETAIN_LIMIT; ls | grep GHOST_ARCHIVE_MATCH) | sort | uniq -u | xargs --no-run-if-empty rm
+  purgeFiles $GHOST_ARCHIVE_MATCH "ghost content archive"
   # Keep only the most recent number of ghost json files
-  cd $BACKUP_LOCATION && (ls -t | grep GHOST_JSON_FILE_MATCH | head -n $BACKUPS_RETAIN_LIMIT; ls | grep GHOST_JSON_FILE_MATCH) | sort | uniq -u | xargs --no-run-if-empty rm
+  purgeFiles $GHOST_JSON_FILE_MATCH "ghost json"
+}
+
+purgeFiles () {
+    match=$1
+    type=$2
+
+    cd $BACKUP_LOCATION
+    num_files=$(ls | grep "$match" | wc -l)
+    num_purge=$((num_files-BACKUPS_RETAIN_LIMIT))
+    num_purge="$(( $num_purge < 0 ? 0 : $num_purge ))"
+
+    log " ...found $num_files $type files (purging $num_purge)"
+    (ls -t | grep $match | head -n $BACKUPS_RETAIN_LIMIT; ls | grep $match) | sort | uniq -u | xargs --no-run-if-empty rm
 }
 
 #By default do a complete backup with purging
