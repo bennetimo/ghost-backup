@@ -73,5 +73,5 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-#To workaround tail -F behavior (which says "has been replaced with a remote file. giving up on this name"), create and truncate log file on start up
-CMD ["sh", "-c", "cron && truncate -s0 $LOG_LOCATION; tail -n0 -F $LOG_LOCATION"]
+# Run cron and continually watch the ghost backup log file
+CMD ["sh", "-c", "touch $LOG_LOCATION && cron && tail -F $LOG_LOCATION"]
