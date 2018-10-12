@@ -20,7 +20,7 @@ restoreDB () {
     log "restoring data from mysql dump file: $RESTORE_FILE"
     # If container has been linked correctly, these environment variables should be available
 
-    gunzip < $RESTORE_FILE | mysql --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --user=$MYSQL_SERVICE_USER --password=$MYSQL_SERVICE_PASSWORD $MYSQL_SERVICE_DATABASE || exit 1
+    gunzip < $RESTORE_FILE | mysql --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --user=$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE || exit 1
   else
     # sqlite
     log "restoring data from sqlite dump file: $RESTORE_FILE"

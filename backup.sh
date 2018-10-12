@@ -5,7 +5,7 @@ set -e
 #Load common vars
 source common.sh
 
-usage() { echo "Usage: backup [-F (exclude ghost content files)] [-J (exclude ghost json file)] [-D (exclude db)] [-p (do not purge old backups)]" 1>&2; exit 0; }
+usage() { echo "Usage: backup [-F (exclude ghost content files)] [-J (exclude ghost json file)] [-D (exclude db)] [-P (do not purge old backups)]" 1>&2; exit 0; }
 
 # Backup the ghost DB (either sqlite3 or mysql)
 backupDB () {
@@ -15,7 +15,7 @@ backupDB () {
     # mysql/mariadb
 
     log " creating ghost db archive (mysql)..."
-    mysqldump --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --single-transaction --user=$MYSQL_SERVICE_USER --password=$MYSQL_SERVICE_PASSWORD $MYSQL_SERVICE_DATABASE |
+    mysqldump --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --single-transaction --user=$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE |
      gzip -c > $export_file
 
   else
@@ -84,7 +84,7 @@ include_db=true
 include_files=true
 include_json_file=true
 purge=true
-while getopts "FDJp" opt; do
+while getopts "FDJP" opt; do
   case $opt in
     D)
       include_db=false
@@ -98,7 +98,7 @@ while getopts "FDJp" opt; do
       include_json_file=false
       log "-J set: excluding ghost json in backup"
       ;;
-    p)
+    P)
       purge=false
       log "-p set: not purging old backups (limit is set to $BACKUPS_RETAIN_LIMIT)"
       ;;

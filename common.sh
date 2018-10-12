@@ -33,9 +33,9 @@ checkMysqlAvailable () {
         log " ...a mysql container exists on the network. Using mysql mode"
 
         # Check the appropriate env vars needed for mysql have been set
-        if [ -z "$MYSQL_SERVICE_USER" ]; then log "Error: MYSQL_SERVICE_USER not set. Make sure it's set for your ghost-backup container?"; log "Finished: FAILURE"; exit 1; fi
-        if [ -z "$MYSQL_SERVICE_DATABASE" ]; then log "Error: MYSQL_SERVICE_DATABASE not set. Make sure it's set for your ghost-backup container?"; log "Finished: FAILURE"; exit 1; fi
-        if [ -z "$MYSQL_SERVICE_PASSWORD" ]; then log "Error: MYSQL_SERVICE_PASSWORD not set. Make sure it's set for your ghost-backup container?"; log "Finished: FAILURE"; exit 1; fi
+        if [ -z "$MYSQL_USER" ]; then log "Error: MYSQL_USER not set. Make sure it's set for your ghost-backup container?"; log "Finished: FAILURE"; exit 1; fi
+        if [ -z "$MYSQL_DATABASE" ]; then log "Error: MYSQL_DATABASE not set. Make sure it's set for your ghost-backup container?"; log "Finished: FAILURE"; exit 1; fi
+        if [ -z "$MYSQL_PASSWORD" ]; then log "Error: MYSQL_PASSWORD not set. Make sure it's set for your ghost-backup container?"; log "Finished: FAILURE"; exit 1; fi
 
     else
         log " ...no mysql container exists on the network. Using sqlite mode"
@@ -61,7 +61,7 @@ retrieveClientSecret () {
 
     if [ $MYSQL_CONTAINER_LINKED = true ]; then
         CLIENT_SECRET=$(mysql --raw -s -N --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT \
-            --user=$MYSQL_SERVICE_USER --password=$MYSQL_SERVICE_PASSWORD --database=$MYSQL_SERVICE_DATABASE -e "$sql")
+            --user=$MYSQL_USER --password=$MYSQL_PASSWORD --database=$MYSQL_DATABASE -e "$sql")
     else
         CLIENT_SECRET=$(sqlite3 $GHOST_LOCATION/content/data/$SQLITE_DB_NAME "$sql")
     fi
