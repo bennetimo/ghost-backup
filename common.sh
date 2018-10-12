@@ -75,7 +75,7 @@ retrieveClientBearerToken () {
     BEARER_TOKEN=$(curl -s \
     -H "Accept: application/json" \
     -H "Content-Type: application/x-www-form-urlencoded" \
-    -X POST -d "grant_type=password&username=$AUTH_EMAIL&password=$AUTH_PASSWORD&client_id=$CLIENT_SLUG&client_secret=$CLIENT_SECRET" \
+    -X POST -d "grant_type=password&username=$GHOST_SERVICE_USER_EMAIL&password=$GHOST_SERVICE_USER_PASSWORD&client_id=$CLIENT_SLUG&client_secret=$CLIENT_SECRET" \
     $GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/authentication/token | jq -r .access_token)
 
     if [ -z "$BEARER_TOKEN" ]; then log "Error: Unable to retrieve an access token for the api. Check all your credentials are correct"; log "Finished: FAILURE"; exit 1; fi
