@@ -39,7 +39,7 @@ restoreGhost () {
     tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION --keep-newer-files --warning=no-ignore-newer 2>&1 | tee -a $LOG_LOCATION
   else
     log "removing ghost files in $GHOST_LOCATION"
-    rm -r $GHOST_LOCATION/content/apps/ $GHOST_LOCATION/content/images/ $GHOST_LOCATION/content/settings/ $GHOST_LOCATION/content/themes/ #Do not remove /data or config.production.json
+    rm -rf $GHOST_LOCATION/content/apps/ $GHOST_LOCATION/content/images/ $GHOST_LOCATION/content/settings/ $GHOST_LOCATION/content/themes/ #Do not remove /data or config.production.json
     log "restoring ghost files from archive file: $RESTORE_FILE"
     tar -xzf $RESTORE_FILE --directory=$GHOST_LOCATION --exclude='config.production.json' 2>&1 | tee -a $LOG_LOCATION
   fi
