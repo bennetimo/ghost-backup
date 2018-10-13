@@ -37,8 +37,8 @@ The below sections walk through customizing the backup.
 
 ### Quick Start (Ghost using mysql/mariadb)
 
-If your Ghost [configuration] is using mysql/mariadb then you just need to start the ghost-backup container on the same [network] as
-as your database container, so that it can talk to your database.  
+If your Ghost [configuration](https://docs.ghost.org/docs/config) is using mysql/mariadb then you just need to start the ghost-backup
+container on the same [network] as your database container, so that it can talk to your database.  
 
 ```
 docker run --name ghost-backup -d \
@@ -52,8 +52,8 @@ docker run --name ghost-backup -d \
 
 Where:
   * `<your-ghost-container>` is as above
-  * `<your-network>` is a network that your database container is connected to. It should be accessible using 
-the hostname 'mysql' which you can set with [--network-alias]
+  * `<your-network>` is a network that your database container is connected to. It should be accessible using the hostname 'mysql' which you can set with [--network-alias]
+  * MYSQL_ vars are the details needed to access your database 
  
 > This could also be setup via [container links], but this feature is now considered legacy and deprecated.
 
@@ -65,8 +65,8 @@ there with `docker exec ghost-backup ls /backups`.
 To mount the backups directory somewhere on the host add:
 `-v </backup/folder/on/host>:/backups` to your docker run command.
 
-To use [docker volumes](https://docs.docker.com/storage/volumes/), first create the volume, then attach it to both
-the ghost container and backup container. See the bottom of this readme for an example docker-compose
+To use [docker volumes](https://docs.docker.com/storage/volumes/), first create the volume, then attach it to both the ghost container 
+and backup container. See the bottom of this readme for an example docker-compose
 configuration using volumes.
 
 > To change the backups folder used in the container set the env var: BACKUP_LOCATION=/your/new/location
@@ -74,8 +74,8 @@ configuration using volumes.
 ### Ghost json file backup/restore setup
 
 Ghost labs has had a feature to [export your blog content](https://help.ghost.org/article/13-import-export) as a single json file for a long time. Since version
-1.x+ it is also possible to [import a json file](https://docs.ghost.org/docs/migrating-to-ghost-1-0-0#section-3-use-the-ghost-1-0-0-importer). This is a mandatory step when upgrading from ghost 0.x to 1.x as the database
-format changed. ghost-backup can be configured to export/import this json file using the exact same api that it used when 
+1.x+ it is also possible to [import a json file](https://docs.ghost.org/docs/migrating-to-ghost-1-0-0#section-3-use-the-ghost-1-0-0-importer). This is a mandatory step 
+when upgrading from ghost 0.x to 1.x as the database format changed. ghost-backup can be configured to export/import this json file using the exact same api that it used when 
 you initiate this manually via http://yourghostblog/ghost/labs.
 
 > If you import a json file twice, all posts will be duplicated. The API does not seem to currently filter out duplicate posts so be careful
@@ -85,7 +85,7 @@ communicate with your ghost service.
 
 You need to configure the following additional environment variables, so that an access token can be retrieved:
  
- * GHOST_SERVICE_USER_EMAIL # The email address of a user configured in your ghost installation (N.B. this should be uri encoded, e.g. my-email.%40emample.com) 
+ * GHOST_SERVICE_USER_EMAIL # The email address of a user configured in your ghost installation (N.B. this should be uri encoded, e.g. my-email.%40example.com) 
  * GHOST_SERVICE_USER_PASSWORD # The password for that user
  
  > A good idea would be to create a new user in your ghost admin panel specifically for ghost-backup and use those credentials here
@@ -106,7 +106,7 @@ A full configuration with support for json import/export might look like this:
 ```
 docker run --name ghost-backup -d \
     --volumes-from <your-ghost-container> \
-    --network=<your network> \
+    --network=<your-network> \
     -e MYSQL_USER=<yourdbuser> \
     -e MYSQL_PASSWORD=<yourdbpassword> \
     -e MYSQL_DATABASE=<yourdatabase> \
@@ -138,7 +138,7 @@ This will display a menu with all of the available backup files. You can select 
 #### By date restore
 You can also restore by date:
 
-`docker exec ghost-backup restore -d yyyymmdd-hhmm
+`docker exec ghost-backup restore -d yyyymmdd-hhmm`
 This will restore the backup files from yyyymmdd-hhmm, if found. 
 
 > Date restore expects to find both a db and content files archive for the corresponding date, or will stop.
@@ -225,7 +225,8 @@ To do this, you need to have a dropbox container running, linked to your account
 > You need to link this container to your Dropbox account first, see [docker-dropbox quickstart]
 
 Then create your backup container using the Dropbox volume:
-```docker run --name ghost-backup -d \
+```
+docker run --name ghost-backup -d \
         --volumes-from <your-ghost-container> \
         --volumes-from <your-dropbox-container> \
         -e "BACKUP_LOCATION=/root/Dropbox" 
@@ -244,7 +245,7 @@ If you want to disable automated backups and just perform them manually as neces
 ```
 docker run -d --name ghost-backup \
     --volumes-from <your-ghost-container> 
-    -e "AUTOMATED_BACKUPS=false" ghost-backup
+    -e "AUTOMATED_BACKUPS=false" bennetimo/ghost-backup
 ```
 
 Now you can run:
@@ -265,7 +266,7 @@ Now your workflow will be:
 
 1. Write/edit content locally
 2. Take a local backup with `docker exec ghost-backup backup`
-3. Transfer your backup archives to your remote host (e.g. scp) to the mounted backup location
+3. Transfer your backup archives to your remote host (e.g. scp/DropBox) to the mounted backup location
 4. On the remote host `docker exec ghost-backup restore -i` and restore your backup files
 5. Restart your remote ghost blog to pick up changes
 
@@ -274,7 +275,7 @@ Now your workflow will be:
 Using [docker-compose](https://docs.docker.com/compose/) makes it easy to configure all the requirement components. 
 
 The example configuration below will startup a ghost container, mariadb container and ghost-backup container
-all on the same network so that ghost backup can work. Everything will be fronted by an nginx reverse proxy.
+all on the same network so that ghost backup can work.
 
 Then:
 
@@ -336,15 +337,17 @@ volumes:
  data-ghost-db:
 ```
 
-> N.B. The above is shown as a self contained file for completeness. But you'd probably want to look at using
-env_files or multiple yaml files for better separation
+> N.B. The above is shown as a self contained file for completeness. But, you'd probably want to look at using
+[env_files](https://docs.docker.com/compose/environment-variables/#the-env_file-configuration-option) or 
+[multiple compose files](https://docs.docker.com/compose/extends/#multiple-compose-files) for better separation
 
 ### Versions
 
 Ghost 0.x to 1.x introduced some breaking changes so backups and restores between them are not possible without a little work.
 
-ghost-backup 0.7.3 is an earlier version of this container for ghost 0.x releases
-ghost-backup 1.x is for ghost 1.x+ releases
+ghost-backup 0.7.3 is an earlier version of this container for ghost 0.x releases.
+
+ghost-backup 1.x is for ghost 1.x+ releases.
 
 #### Migrating from ghost 0.x to 1.x+
 
@@ -352,12 +355,16 @@ Follow ghosts [migration guide](https://docs.ghost.org/docs/migrating-to-ghost-1
 
 Database backups will *not* be compatible between these two major versions. However *the json backup is*.
 
-For content files, what used to live under `/var/lib/ghost` in 0.x move to `/var/lib/ghost/content` in 1.x, as
+For content files that used to live under `/var/lib/ghost` in 0.x moved to `/var/lib/ghost/content` in 1.x, as
 well as there being a few other changes with config/themes etc.
 
 ### Other Info
 
-This container was inspired by [wordpress-backup]
+This container was inspired by [wordpress-backup]. 
+
+**Disclaimer:** Will not be held responsible for any loss of files/backups arising from your use of this 
+container. **Be sure to test your backup/restore process when you first set everything up to make sure it
+is all working as you expect.**
 
  [Docker]: https://www.docker.com/
  [volume]: https://docs.docker.com/storage/volumes/
