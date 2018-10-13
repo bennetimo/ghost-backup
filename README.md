@@ -55,16 +55,7 @@ Where:
   * `<your-network>` is a network that your database container is connected to. It should be accessible using 
 the hostname 'mysql' which you can set with [--network-alias]
  
-This could also be setup via [container links], but this feature is now considered legacy and deprecated.
-However if you are using links, you would set it up as below (the mysql environment variables are not set
-in this case, as linking copies them from the mysql container):
-
-```
-docker run --name ghost-backup -d \
-    --volumes-from <your-ghost-container> \
-    --link=<your-mysql-container>:mysql \
-    bennetimo/ghost-backup
-```
+> This could also be setup via [container links], but this feature is now considered legacy and deprecated.
 
 ### Configuring the backup location
 
@@ -120,7 +111,7 @@ docker run --name ghost-backup -d \
     -e MYSQL_PASSWORD=<yourdbpassword> \
     -e MYSQL_DATABASE=<yourdatabase> \
     -e GHOST_SERVICE_USER_EMAIL=<my-email.%40emample.com> \
-    -e GHOST_SERVICE_USER_PASSWORD=<mypassword>
+    -e GHOST_SERVICE_USER_PASSWORD=<mypassword> \
     bennetimo/ghost-backup
 ```
 
@@ -150,17 +141,32 @@ You can also restore by date:
 `docker exec ghost-backup restore -d yyyymmdd-hhmm
 This will restore the backup files from yyyymmdd-hhmm, if found. 
 
+> Date restore expects to find both a db and content files archive for the corresponding date, or will stop.
+If you want to restore just one of the other (or a json file), use either file restore or interactive restore
+
 #### By file restore
 You can restore a given file mounted to the container:
 
 `docker exec ghost-backup restore -f /path/to/file/filename`
 
-Ghost restore will treat filenames containing 'db' as database files, and filenames containing 'ghost' as archive files. 
+> N.B. Be sure to use fully qualified path names when restoring a single file
 
 #### In place restore
 By default the restore script will remove the ghost files from `GHOST_LOCATION/content` before restoring the archive, except for the database which is handled separately. 
 
 To restore without removing files first you can specify the command argument capitalised, e.g. `-I, -D, -F`.
+
+#### Matching files to restore
+
+ghost-backup uses the following matches to determine whether a file to restore is a db archive, content archive, or json file:
+
+```
+DB_ARCHIVE_MATCH="${BACKUP_FILE_PREFIX}.*db.*gz"
+GHOST_ARCHIVE_MATCH="${BACKUP_FILE_PREFIX}.*ghost.*tar"
+GHOST_JSON_FILE_MATCH="${BACKUP_FILE_PREFIX}.*ghost.*json"
+```
+
+If you rename your backup files, they must match these patterns to be able to restore.
 
 ### Advanced Configuration
 ghost-backup has a number of options which can be configured as you need. 
@@ -184,7 +190,8 @@ ghost-backup has a number of options which can be configured as you need.
 
 For example, if you wanted to backup at 2AM to the location /some/dir/backups, storing 10 days of backups you would use:
 
-```docker run --name ghost-backup -d \
+```
+docker run --name ghost-backup -d \
         --volumes-from <your-data-container> \
         -e "BACKUP_LOCATION=/some/dir/backups" \
         -e "BACKUP_TIME=0 2 * * *" \
@@ -293,8 +300,8 @@ services:
    - database__client=mysql
    - database__connection__host=mysql
    - database__connection__database=ghost
-   - database__connection__user=myuser
-   - database__connection__password=mypassword
+   - database__connection__user=yourdbuser
+   - database__connection__password=yourdbpassword
   volumes:
   - "data-ghost-content:/var/lib/ghost/content"
 
@@ -304,8 +311,8 @@ services:
   restart: always
   environment:
    - MYSQL_ROOT_PASSWORD=myrootpassword
-   - MYSQL_USER=myuser
-   - MYSQL_PASSWORD=mypassword
+   - MYSQL_USER=yourdbuser
+   - MYSQL_PASSWORD=yourdbpassword
    - MYSQL_DATABASE=ghost
   expose:
   - "3306"
@@ -317,8 +324,8 @@ services:
   image: bennetimo/ghost-backup:1.25
   container_name: "ghost-backup"
   environment:
-   - MYSQL_USER=myuser
-   - MYSQL_PASSWORD=mypassword
+   - MYSQL_USER=yourdbuser
+   - MYSQL_PASSWORD=yourdbpassword
    - MYSQL_DATABASE=ghost
   volumes:
   - "data-ghost-content:/var/lib/ghost/content"
