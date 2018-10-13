@@ -2,69 +2,105 @@
 
 set -e
 
-NOW=`date '+%Y%m%d-%H%M'`
-BACKUP_FILE_PREFIX="backup"
+#Load common vars
+source common.sh
 
-usage() { echo "Usage: backup [-f (exclude ghost files)] [-d (exclude db)] [-p (do not purge old backups)]" 1>&2; exit 0; }
-
-# Simple log, write to stdout
-log () {
-  echo "`date -u`: $1" | tee -a $LOG_LOCATION
-}
+usage() { echo "Usage: backup [-F (exclude ghost content files)] [-J (exclude ghost json file)] [-D (exclude db)] [-P (do not purge old backups)]" 1>&2; exit 0; }
 
 # Backup the ghost DB (either sqlite3 or mysql)
 backupDB () {
   # Test the env that is set if a mysql container is linked
-  if [ -z $MYSQL_NAME ]; then
-    # sqlite
-    log " creating ghost db archive (sqlite)..."
-    cd $GHOST_LOCATION/data && sqlite3 ghost.db ".backup temp.db" && gzip -c temp.db > "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz" && rm temp.db
-  else
+  export_file=$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz
+  if [ $MYSQL_CONTAINER_LINKED = true ]; then
     # mysql/mariadb
-    log " creating ghost db archive (mysql)..."
-    # If container has been linked correctly, these environment variables should be available
-    if [ -z "$MYSQL_ENV_MYSQL_USER" ]; then log "Error: MYSQL_ENV_MYSQL_USER not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
-    if [ -z "$MYSQL_ENV_MYSQL_DATABASE" ]; then log "Error: MYSQL_ENV_MYSQL_DATABASE not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
-    if [ -z "$MYSQL_ENV_MYSQL_PASSWORD" ]; then log "Error: MYSQL_ENV_MYSQL_PASSWORD not set. Have you linked in the mysql/mariadb container?"; log "Finished: FAILURE"; exit 1; fi
-    mysqldump -h mysql --single-transaction -u $MYSQL_ENV_MYSQL_USER --password=$MYSQL_ENV_MYSQL_PASSWORD $MYSQL_ENV_MYSQL_DATABASE | 
-     gzip -c > $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz
-   fi
 
-  log "...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz"
+    log " creating ghost db archive (mysql)..."
+    mysqldump --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --single-transaction --user=$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE |
+     gzip -c > $export_file
+
+  else
+    # sqlite
+
+    log " creating ghost db archive (sqlite)..."
+    cd $GHOST_LOCATION/content/data && sqlite3 $SQLITE_DB_NAME ".backup temp.db" && gzip -c temp.db > $export_file && rm temp.db
+  fi
+
+  log " ...completed: $export_file"
 }
 
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhost () {
-  log " creating ghost files archive..."
-  tar cfz "$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz" --directory=$GHOST_LOCATION --exclude='data' . 2>&1 | tee -a $LOG_LOCATION #Exclude the /data directory (we back that up separately)
-  log " ...completed: $BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
+  log " creating ghost content files archive..."
+  export_file="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
+  #Exclude  /content/data  (we back that up separately), current and versions (Ghost source files from docker image), and content.orig (created when Ghost was built)
+  tar cfz $export_file --directory=$GHOST_LOCATION --exclude='content/data' --exclude='content.orig' --exclude='current' --exclude='versions' . 2>&1 | tee -a $LOG_LOCATION
+  log " ...completed: $export_file"
+}
+
+# Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
+backupGhostJsonFile () {
+  export_file="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.json"
+
+  checkGhostAvailable
+
+  if [ $GHOST_CONTAINER_LINKED = true ]; then
+    retrieveClientSecret
+    retrieveClientBearerToken
+    log " ...downloading ghost json file..."
+    curl --silent -L -o $export_file http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/db?access_token=$BEARER_TOKEN
+    log " ...completed: $export_file"
+  else
+    log " ...skipping: Your ghost service was not found on the network. Configure GHOST_SERVICE_NAME and GHOST_SERVICE_PORT"
+  fi
+
 }
 
 # Purge the backups directory so we only keep the most recent backups
 purgeOldBackups () {
-  # Each backup contains 2 files, one each for the db and file archives
-  RETAIN_FILES=$((2 * $BACKUPS_RETAIN_LIMIT))
-  # Remove all the backup files, apart from the RETAIN_FILES most recent ones
-  cd $BACKUP_LOCATION && (ls -t | grep $BACKUP_FILE_PREFIX | head -n $RETAIN_FILES; ls | grep $BACKUP_FILE_PREFIX) | sort | uniq -u | xargs --no-run-if-empty rm
+  log "purging old backups (set to retain the most recent $BACKUPS_RETAIN_LIMIT)"
+  # Keep only the most recent number of db archives
+  purgeFiles $DB_ARCHIVE_MATCH "database"
+  # Keep only the most recent number of ghost content archives
+  purgeFiles $GHOST_ARCHIVE_MATCH "ghost content archive"
+  # Keep only the most recent number of ghost json files
+  purgeFiles $GHOST_JSON_FILE_MATCH "ghost json"
+}
+
+purgeFiles () {
+    match=$1
+    type=$2
+
+    cd $BACKUP_LOCATION
+    num_files=$(ls | grep "$match" | wc -l)
+    num_purge=$((num_files-BACKUPS_RETAIN_LIMIT))
+    num_purge="$(( $num_purge < 0 ? 0 : $num_purge ))"
+
+    log " ...found $num_files $type files (purging $num_purge)"
+    (ls -t | grep $match | head -n $BACKUPS_RETAIN_LIMIT; ls | grep $match) | sort | uniq -u | xargs --no-run-if-empty rm
 }
 
 #By default do a complete backup with purging
-include_files=true
 include_db=true
+include_files=true
+include_json_file=true
 purge=true
-while getopts "FDP" opt; do
+while getopts "FDJP" opt; do
   case $opt in
-    F)
-      include_files=false
-      log "excluding ghost files archive in backup"
-      ;;
     D)
       include_db=false
-      log "excluding db archive in backup"
+      log "-D set: excluding db archive in backup"
+      ;;
+    F)
+      include_files=false
+      log "-F set: excluding ghost files archive in backup"
+      ;;
+    J)
+      include_json_file=false
+      log "-J set: excluding ghost json in backup"
       ;;
     P)
       purge=false
-      log "not purging old backups (limit is set to $BACKUPS_RETAIN_LIMIT)"
+      log "-p set: not purging old backups (limit is set to $BACKUPS_RETAIN_LIMIT)"
       ;;
     \?)
       usage
@@ -75,12 +111,14 @@ done
 
 # Initiate the backup
 log "creating backup: $NOW..."
-if [ $include_files = true ]; then
-  backupGhost
-fi
-if [ $include_db = true ]; then
-  backupDB
-fi
+
+log "backing up ghost database"
+if [ $include_db = true ]; then backupDB; else log " ...skipped" ; fi
+log "backing up ghost content files"
+if [ $include_files = true ]; then backupGhost; else log " ...skipped" ; fi
+log "backing up ghost json file"
+if [ $include_json_file = true ]; then backupGhostJsonFile; else log " ...skipped" ; fi
+
 if [ $purge = true ]; then
   purgeOldBackups
 fi

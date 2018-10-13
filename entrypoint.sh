@@ -1,44 +1,22 @@
 #!/bin/bash
 
-# Install the crontab for ghost-backup if it does not exist already
-if [ $(crontab -l 2>/dev/null | egrep -c ghost-backup) -le 1 ] && [ "$AUTOMATED_BACKUPS" == "true" ]; then
-	echo "Intalling cron entry to start ghost-backup at: $BACKUP_TIME"
-	
-	# Add mysql env vars to the heredoc if that is the db being used
-	if [ -z $MYSQL_NAME ]; then
-		# sqlite
-		MYSQL_ENVS=""
-	else
-		# mysql/mariadb
-		cat <<-EOF>~/mysql.env
-		export MYSQL_NAME="$MYSQL_NAME"
-		export MYSQL_ENV_MYSQL_USER="$MYSQL_ENV_MYSQL_USER"
-		export MYSQL_ENV_MYSQL_DATABASE="$MYSQL_ENV_MYSQL_DATABASE"
-		export MYSQL_ENV_MYSQL_PASSWORD="$MYSQL_ENV_MYSQL_PASSWORD"
-		EOF
-		MYSQL_ENVS=". ~/mysql.env; "
-		chmod 600 ~/mysql.env
-	fi
+set -e
 
-	cat <<-EOF>~/ghost.env
-	export GHOST_LOCATION=$GHOST_LOCATION
-	export LOG_LOCATION=$LOG_LOCATION
-	EOF
-	chmod 600 ~/ghost.env
+if [ "$AUTOMATED_BACKUPS" == "true" ]; then
 
-	{
-		cat <<-EOF
-		BACKUP_LOCATION=$BACKUP_LOCATION
-		BACKUPS_RETAIN_LIMIT=$BACKUPS_RETAIN_LIMIT
-		$BACKUP_TIME . ~/ghost.env; $MYSQL_ENVS /bin/backup
-		EOF
-	} | crontab -
+    CRON_TAB="/etc/cron.d/ghost-backup"
+    ENV_FILE="/root/ghost-backup-envs.sh"
 
-	# Create the backup folder if it doesn't exist
-	mkdir -p $BACKUP_LOCATION
+    echo "Automated backups are on...installing crontab..."
+    printenv | sed 's/^\(.*\)\=\(.*\)$/export \1\="\2"/g' > $ENV_FILE
+    chmod +x $ENV_FILE
+    (echo "$BACKUP_TIME root . $ENV_FILE; /bin/backup"; echo "")  > $CRON_TAB
+
+    cat $CRON_TAB
 fi
 
-echo "crontab for ghost-backup is:"
-crontab -l
+# Create the backup folder if it doesn't exist
+mkdir -p $BACKUP_LOCATION
 
+echo "ghost-backup setup complete"
 exec "$@"
