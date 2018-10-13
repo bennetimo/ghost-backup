@@ -92,8 +92,8 @@ chooseFile () {
 # Attempt to restore ghost and db files from a given yyyymmdd-hhmm date
 restoreDate () {
   DATE=$1
-  GHOST_ARCHIVE="$BACKUP_LOCATION/backup-ghost_$DATE.tar.gz"
-  DB_ARCHIVE="$BACKUP_LOCATION/backup-db_$DATE.gz"
+  GHOST_ARCHIVE="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$DATE.tar.gz"
+  DB_ARCHIVE="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$DATE.gz"
 
   if [ ! -f $GHOST_ARCHIVE ]; then
       log "The ghost archive file $GHOST_ARCHIVE does not exist. Aborting."
@@ -123,7 +123,7 @@ restoreFile () {
   fi
 }
 
-while getopts "idf:IDF:" opt; do
+while getopts "id:f:ID:F:" opt; do
   case $opt in
     i)
       chooseFile
