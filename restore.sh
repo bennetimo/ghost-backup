@@ -54,12 +54,15 @@ restoreGhostJsonFile () {
   log "restoring data from ghost json export file: $RESTORE_FILE"
 
   checkGhostAvailable
+  checkGhostAdminCookie
 
   if [ $GHOST_CONTAINER_LINKED = true ]; then
-    retrieveClientSecret
-    retrieveClientBearerToken
     log " ...uploading and importing ghost json file..."
-    curl --silent --form "importfile=@$RESTORE_FILE" -H "Authorization: Bearer $BEARER_TOKEN" $GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/db
+
+    curl --silent -b $GHOST_COOKIE_FILE \
+      -H "Origin: https://$GHOST_SERVICE_NAME" \
+      --form "importfile=@$RESTORE_FILE" \
+      "http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v3/admin/db" 
   else
     log "Error: Your ghost service was not found on the network. Configure GHOST_SERVICE_NAME and GHOST_SERVICE_PORT"; exit 1
   fi

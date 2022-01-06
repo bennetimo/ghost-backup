@@ -13,6 +13,8 @@ if [ "$AUTOMATED_BACKUPS" == "true" ]; then
     (echo "$BACKUP_TIME root . $ENV_FILE; /bin/backup"; echo "")  > $CRON_TAB
 
     cat $CRON_TAB
+else
+    echo "Automated backups are disabled"
 fi
 
 # Create the backup folder if it doesn't exist

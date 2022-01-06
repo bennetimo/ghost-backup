@@ -1,6 +1,8 @@
 # ghost-backup
 
-ghost-backup is a simple, automated, backup (and restore) [Docker] container for a [Ghost] blog. It supports Ghost configured with either sqlite or mysql/[mariadb]. 
+ghost-backup is a simple, automated, backup (and restore) [Docker] container for a [Ghost] blog. It supports Ghost configured with either sqlite or mysql/[mariadb].
+
+The current version is designed for use with Ghost 4.x.
 
 ghost-backup can:
 
@@ -73,17 +75,15 @@ configuration using volumes.
 
 ### Ghost json file backup/restore setup
 
-Ghost labs has had a feature to [export your blog content](https://help.ghost.org/article/13-import-export) as a single json file for a long time. Since version
-1.x+ it is also possible to [import a json file](https://docs.ghost.org/docs/migrating-to-ghost-1-0-0#section-3-use-the-ghost-1-0-0-importer). This is a mandatory step 
-when upgrading from ghost 0.x to 1.x as the database format changed. ghost-backup can be configured to export/import this json file using the exact same api that it used when 
-you initiate this manually via http://yourghostblog/ghost/labs.
+Ghost labs has had a feature to [export your blog content](https://ghost.org/help/the-importer/) as a single json file for a long time. 
+
+There is a similar feature to import a json file. 
 
 > If you import a json file twice, all posts will be duplicated. The API does not seem to currently filter out duplicate posts so be careful
 
-To use the json api, ghost-backup needs to authenticate and obtain an [access token](https://api.ghost.org/docs/user-authentication#retrieve-a-bearer-token-via-curl ), and needs to be able to
-communicate with your ghost service.
+To use the json api, ghost-backup needs to authenticate and obtain a [session cookie](https://ghost.org/docs/admin-api/#user-authentication), and needs to be able to communicate with your ghost service.
 
-You need to configure the following additional environment variables, so that an access token can be retrieved:
+You need to configure the following additional environment variables, so that a session cookie can be retrieved:
  
  * GHOST_SERVICE_USER_EMAIL # The email address of a user configured in your ghost installation (N.B. this should be uri encoded, e.g. my-email.%40example.com) 
  * GHOST_SERVICE_USER_PASSWORD # The password for that user
@@ -95,11 +95,6 @@ default port of `2368`. If you need to override these, you can override the env 
 
  * GHOST_SERVICE_NAME 
  * GHOST_SERVICE_PORT
-
-To use the json api a [client id and secret](https://api.ghost.org/docs/client-authentication) is also required. With a standard ghost install there are several clients preconfigured,
-including 'ghost-frontend' and 'ghost-backup'. Each of these gets a secret randomly generated and put into the database. By default
-ghost-backup will use the 'ghost-backup' client and read the corresponding secret from the database so you do not need to configure this.
-However if you need to override the client used for any reason, you can set the `CLIENT_SLUG` for your ghost-backup container.
 
 A full configuration with support for json import/export might look like this:
 
@@ -115,6 +110,9 @@ docker run --name ghost-backup -d \
     bennetimo/ghost-backup
 ```
 
+> Note the APIs used to export and import the json are undocumented. ghost-backup uses the same api that is used when you initiate an export/import through the 
+admin interface of your ghost blog.
+
 ### Perform a manual backup
 `docker exec ghost-backup backup`
 
@@ -126,7 +124,7 @@ One archive is the database, one the archive of your content files, and if confi
 ### Restore a backup
 A backup is no good if it can't be restored :) You can do that in three ways:
 
-> N.B. After a database restore you will likely need to restart your ghost block container to see the changes
+> N.B. After a database restore you will likely need to restart your ghost blog container to see the changes
 
 #### Interactive restore
 You can launch an interactive backup menu using:
@@ -293,7 +291,7 @@ version: "3.7"
 services:
  # Ghost container
  ghost:
-  image: ghost:1.25
+  image: ghost:4
   restart: always
   ports:
    - "2368:2368"
@@ -322,7 +320,7 @@ services:
 
  # Ghost backup container
  ghost-backup:
-  image: bennetimo/ghost-backup:1.25
+  image: bennetimo/ghost-backup:4
   container_name: "ghost-backup"
   environment:
    - MYSQL_USER=yourdbuser
@@ -347,16 +345,21 @@ Ghost 0.x to 1.x introduced some breaking changes so backups and restores betwee
 
 ghost-backup 0.7.3 is an earlier version of this container for ghost 0.x releases.
 
-ghost-backup 1.x is for ghost 1.x+ releases.
+ghost-backup 1.x is for ghost 1.x releases.
 
-#### Migrating from ghost 0.x to 1.x+
+ghost-backup 4.x is for ghost 4.x releases.
 
-Follow ghosts [migration guide](https://docs.ghost.org/docs/migrating-to-ghost-1-0-0).
+#### Migrating between Ghost versions
 
-Database backups will *not* be compatible between these two major versions. However *the json backup is*.
+Follow ghosts [update guide](https://ghost.org/docs/update/).
 
-For content files that used to live under `/var/lib/ghost` in 0.x moved to `/var/lib/ghost/content` in 1.x, as
+Database backups generally will *not* be compatible between major versions, as breaking changes are introduced. You may find that the json export from an
+older version can be successfully imported into a newer version. 
+
+Content files that used to live under `/var/lib/ghost` in 0.x moved to `/var/lib/ghost/content` in 1.x, as
 well as there being a few other changes with config/themes etc.
+
+Always check the Ghost docs for up-to-date information and test your workflow.
 
 ### Other Info
 

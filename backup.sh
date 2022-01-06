@@ -42,12 +42,13 @@ backupGhostJsonFile () {
   export_file="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.json"
 
   checkGhostAvailable
+  checkGhostAdminCookie
 
   if [ $GHOST_CONTAINER_LINKED = true ]; then
-    retrieveClientSecret
-    retrieveClientBearerToken
     log " ...downloading ghost json file..."
-    curl --silent -L -o $export_file http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/db?access_token=$BEARER_TOKEN
+    curl --silent $export_file -b $GHOST_COOKIE_FILE \
+      -H "Origin: https://$GHOST_SERVICE_NAME" \
+      "http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v3/admin/db" 
     log " ...completed: $export_file"
   else
     log " ...skipping: Your ghost service was not found on the network. Configure GHOST_SERVICE_NAME and GHOST_SERVICE_PORT"

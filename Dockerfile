@@ -1,10 +1,21 @@
 FROM debian:stretch
 
-MAINTAINER Tim Bennett
+LABEL org.opencontainers.image.authors="Tim Bennett"
+
+# Set workdir for npm: https://stackoverflow.com/questions/57534295/npm-err-tracker-idealtree-already-exists-while-creating-the-docker-image-for
+WORKDIR /usr/app
 
 RUN \
   apt-get update && \
-  apt-get install -y mysql-client cron sqlite3 curl jq netcat
+  apt-get install -y mysql-client cron sqlite3 curl jq netcat sudo vim jq
+
+# Install nodejs (for using ghost admin client)
+RUN \
+  curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && \
+  apt-get install -y nodejs
+
+# Install ghost admin client: https://ghost.org/docs/admin-api/javascript/
+RUN npm install @tryghost/admin-api
 
 # -----------------------
 # Default configuration
@@ -41,15 +52,18 @@ ENV MYSQL_SERVICE_PORT=3306
 # Name of sqlite database (if applicable)
 ENV SQLITE_DB_NAME="ghost.db"
 
-# The client slug used to auth with the api to import/export the json file
-ENV CLIENT_SLUG="ghost-backup"
-
 # Service name to expect for ghost connections. If using json file backup/restore then your ghost service must be
 # available on the network at this address
 ENV GHOST_SERVICE_NAME="ghost"
 
 # Service port for ghost connections (if applicable)
 ENV GHOST_SERVICE_PORT="2368"
+
+# File which stores retrieved ghost session cookie for accessing the api
+ENV GHOST_COOKIE_FILE="/tmp/ghost-cookie.txt"
+
+# Name of the ghost session cookie expected
+ENV GHOST_ADMIN_COOKIE_NAME="ghost-admin-api-session"
 
 # -----------------------
 

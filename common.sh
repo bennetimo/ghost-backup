@@ -15,10 +15,6 @@ NOW=`date '+%Y%m%d-%H%M'`
 MYSQL_CONTAINER_LINKED=false
 GHOST_CONTAINER_LINKED=false
 
-# Initially client secret is empty
-CLIENT_SECRET=
-BEARER_TOKEN=
-
 # Simple log, write to stdout
 log () {
     echo "`date -u`: $1" | tee -a $LOG_LOCATION
@@ -54,33 +50,24 @@ checkGhostAvailable () {
     fi
 }
 
-retrieveClientSecret () {
-    log " ...retrieving client secret for client: $CLIENT_SLUG"
+createGhostAdminCookie () {
+    # Create a valid session cookie so that we can call the db api (see here for more info: https://ghost.org/docs/admin-api/#user-authentication)
+    log " ...Retrieving ghost session cookie for user $GHOST_SERVICE_USER_EMAIL"
 
-    sql="select secret from clients where slug='$CLIENT_SLUG'"
+    if [ -z "$GHOST_COOKIE_FILE" ]; then log "Error: GHOST_COOKIE_FILE not set. Must be the name of the ghost admin session cookie"; log "Finished: FAILURE"; exit 1; fi
 
-    if [ $MYSQL_CONTAINER_LINKED = true ]; then
-        CLIENT_SECRET=$(mysql --raw -s -N --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT \
-            --user=$MYSQL_USER --password=$MYSQL_PASSWORD --database=$MYSQL_DATABASE -e "$sql")
-    else
-        CLIENT_SECRET=$(sqlite3 $GHOST_LOCATION/content/data/$SQLITE_DB_NAME "$sql")
-    fi
+    curl --silent -c $GHOST_COOKIE_FILE \
+        -d "username=$GHOST_SERVICE_USER_EMAIL&password=$GHOST_SERVICE_USER_PASSWORD" \
+        -H "Origin: https://$GHOST_SERVICE_NAME" \
+        "$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v3/admin/session/"
 
-    if [ -z "$CLIENT_SECRET" ]; then log "Error: Unable to retrieve the client secret for $CLIENT_SLUG from the database."; log "Finished: FAILURE"; exit 1; fi
-    log " ...retrieved client secret: $CLIENT_SECRET for client slug: $CLIENT_SLUG"
+    if ! grep -q "$GHOST_ADMIN_COOKIE_NAME" "$GHOST_COOKIE_FILE"; then log "Error: Unable to create a admin session cookie. Check all your credentials are correct"; log "Finished: FAILURE"; exit 1; fi
 }
 
-retrieveClientBearerToken () {
-    # Retrieve a valid bearer token so that we can call the db api (see here for more info: https://api.ghost.org/docs/user-authentication#retrieve-a-bearer-token-via-curl)
-    BEARER_TOKEN=$(curl -s \
-    -H "Accept: application/json" \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -X POST -d "grant_type=password&username=$GHOST_SERVICE_USER_EMAIL&password=$GHOST_SERVICE_USER_PASSWORD&client_id=$CLIENT_SLUG&client_secret=$CLIENT_SECRET" \
-    $GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v0.1/authentication/token | jq -r .access_token)
-
-    if [ -z "$BEARER_TOKEN" ]; then log "Error: Unable to retrieve an access token for the api. Check all your credentials are correct"; log "Finished: FAILURE"; exit 1; fi
+checkGhostAdminCookie () {
+    if ! grep -q "$GHOST_ADMIN_COOKIE_NAME" "$GHOST_COOKIE_FILE"; then log "Error: Unable to find a retrieved admin cookie named $GHOST_ADMIN_COOKIE_NAME in file $GHOST_COOKIE_FILE"; log "Finished: FAILURE"; exit 1; fi
 }
-
 
 # Run before both the backup and restore scripts
 checkMysqlAvailable
+createGhostAdminCookie
