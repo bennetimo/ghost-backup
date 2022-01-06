@@ -7,15 +7,7 @@ WORKDIR /usr/app
 
 RUN \
   apt-get update && \
-  apt-get install -y mysql-client cron sqlite3 curl jq netcat sudo vim jq
-
-# Install nodejs (for using ghost admin client)
-RUN \
-  curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && \
-  apt-get install -y nodejs
-
-# Install ghost admin client: https://ghost.org/docs/admin-api/javascript/
-RUN npm install @tryghost/admin-api
+  apt-get install -y mysql-client cron sqlite3 curl jq netcat
 
 # -----------------------
 # Default configuration
