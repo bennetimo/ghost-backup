@@ -7,7 +7,7 @@ The current version is designed for use with Ghost 4.x.
 ghost-backup can:
 
  * Take a full backup of your ghost blog with a single `backup` command
-   * Database backup (mysql or mariadb)
+   * Database backup (mysql or mariadb, including support for mysql 8)
    * Content files backup (images, themes etc)
    * Json file backup (retrieved by accessing the export feature of the ghost api)
  * Automate backups according to any arbitrary schedule (via cron)
@@ -18,7 +18,7 @@ By default it will create a backup of your ghost content directory (images, them
 (actual posts), and the exported json file daily at 3am, keeping the most recent 30 backups of each.
 
 When using sqlite, the db backup/restore is handled using the [command line shell] of the [online backup API]. 
-For mysql/mariadb, it uses [mysqldump](https://dev.mysql.com/doc/refman/5.5/en/mysqldump.html).
+For mysql/mariadb, it uses [mysqldump](https://mariadb.com/kb/en/mariadb-dumpmysqldump/).
 
 ### Quick Start (Ghost using sqlite)
 Ghost uses sqlite by default if you have not changed the [configuration](https://docs.ghost.org/docs/config) to mysql.
@@ -184,6 +184,8 @@ ghost-backup has a number of options which can be configured as you need.
 | CLIENT_SLUG           | ghost-backup  | client used for authenticating with the ghost json api |
 | GHOST_SERVICE_NAME    | ghost         | Hostname of ghost container (if applicable) |
 | GHOST_SERVICE_PORT    | 2368          | Port of ghost container   |
+| COMPRESS_DB_DUMP      | true          | Set to false to disable compression of DB dump - handy for storing it in git or similar |
+
 
 
 For example, if you wanted to backup at 2AM to the location /some/dir/backups, storing 10 days of backups you would use:
@@ -199,7 +201,7 @@ docker run --name ghost-backup -d \
 
 > This example is for Ghost using sqlite. If you're using mysql/mariadb just add the linked mysql containers as described above.
 
-#### Disable backup types
+#### Backup options, like disabling backup types
 
 By default, the backup will have a Ghost content files archive, a DB archive, an exported json file 
 (if connected to your ghost service) and purge any excess old backups specified by the `BACKUPS_RETAIN_LIMIT`.
@@ -209,6 +211,7 @@ Each of these can be disabled with command arguments:
  * -F //Do not include a ghost content files archive
  * -J //Do not include a ghost json file export
  * -P //Do not purge old files
+ * -N BACKUP_FILE_NAME //Name all backups like this instead of using date and time in the file name.
 
 For example to perform a backup of just the DB with no purge:
 
@@ -250,6 +253,10 @@ Now you can run:
 `docker exec ghost-backup backup`
 
 Every time you want to take a backup. You can restore as normal (described above).
+
+### Custom scripts after backup completion
+You can add a custom script that will be run after the backup completes by adding it to the docker container at `/bin/user/postbackup.sh`. It will be called
+with up to three arguments: the path to the SQL backup file, the path to the template export file and the path to the JSON export file.
 
 ### Using ghost-backup for cloning an environment locally
 You can use ghost-backup to create a local test environment for your blog, with all the posts and content. This allows
