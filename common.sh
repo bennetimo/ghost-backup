@@ -14,6 +14,7 @@ NOW=`date '+%Y%m%d-%H%M'`
 # Initially set to false before being tested
 MYSQL_CONTAINER_LINKED=false
 GHOST_CONTAINER_LINKED=false
+API_TOKEN_AVAILABLE=false
 
 # Simple log, write to stdout
 log () {
@@ -51,17 +52,22 @@ checkGhostAvailable () {
 }
 
 createGhostAdminCookie () {
-    # Create a valid session cookie so that we can call the db api (see here for more info: https://ghost.org/docs/admin-api/#user-authentication)
-    log " ...Retrieving ghost session cookie for user $GHOST_SERVICE_USER_EMAIL"
+    if [ -z $GHOST_SERVICE_USER_EMAIL ]; then
+        log "No Ghost username set, not using API"
+    else
+        # Create a valid session cookie so that we can call the db api (see here for more info: https://ghost.org/docs/admin-api/#user-authentication)
+        log " ...Retrieving ghost session cookie for user $GHOST_SERVICE_USER_EMAIL"
 
-    if [ -z "$GHOST_COOKIE_FILE" ]; then log "Error: GHOST_COOKIE_FILE not set. Must be the name of the ghost admin session cookie"; log "Finished: FAILURE"; exit 1; fi
+        if [ -z "$GHOST_COOKIE_FILE" ]; then log "Error: GHOST_COOKIE_FILE not set. Must be the name of the ghost admin session cookie"; log "Finished: FAILURE"; exit 1; fi
 
-    curl --silent -c $GHOST_COOKIE_FILE \
-        -d "username=$GHOST_SERVICE_USER_EMAIL&password=$GHOST_SERVICE_USER_PASSWORD" \
-        -H "Origin: https://$GHOST_SERVICE_NAME" \
-        "$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v3/admin/session/"
+        curl --silent -c $GHOST_COOKIE_FILE \
+            -d "username=$GHOST_SERVICE_USER_EMAIL&password=$GHOST_SERVICE_USER_PASSWORD" \
+            -H "Origin: https://$GHOST_SERVICE_NAME" \
+            "$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v3/admin/session/"
 
-    if ! grep -q "$GHOST_ADMIN_COOKIE_NAME" "$GHOST_COOKIE_FILE"; then log "Error: Unable to create a admin session cookie. Check all your credentials are correct"; log "Finished: FAILURE"; exit 1; fi
+        if ! grep -q "$GHOST_ADMIN_COOKIE_NAME" "$GHOST_COOKIE_FILE"; then log "Error: Unable to create a admin session cookie. Check all your credentials are correct"; log "Finished: FAILURE"; exit 1; fi
+        API_TOKEN_AVAILABLE=true
+    fi
 }
 
 checkGhostAdminCookie () {

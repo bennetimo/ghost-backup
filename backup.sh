@@ -5,53 +5,65 @@ set -e
 #Load common vars
 source common.sh
 
+backupfile_template=$BACKUP_FILE_PREFIX-ghost_$NOW
+sql_export_file=""
+template_export_file=""
+json_export_file=""
+
 usage() { echo "Usage: backup [-F (exclude ghost content files)] [-J (exclude ghost json file)] [-D (exclude db)] [-P (do not purge old backups)]" 1>&2; exit 0; }
 
 # Backup the ghost DB (either sqlite3 or mysql)
 backupDB () {
   # Test the env that is set if a mysql container is linked
-  export_file=$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-db_$NOW.gz
+  SUFFIX=""
+  if [ "$COMPRESS_DB_DUMP" == "true" ]; then
+    SUFFIX=".gz"
+  fi
+  sql_export_file=$BACKUP_LOCATION/${backupfile_template}.sql${SUFFIX}
   if [ $MYSQL_CONTAINER_LINKED = true ]; then
     # mysql/mariadb
 
     log " creating ghost db archive (mysql)..."
     mysqldump --host=$MYSQL_SERVICE_NAME  --port=$MYSQL_SERVICE_PORT --single-transaction --user=$MYSQL_USER --password=$MYSQL_PASSWORD $MYSQL_DATABASE |
-     gzip -c > $export_file
+    if [ "$COMPRESS_DB_DUMP" == "true" ]; then gzip -c; else cat; fi > $sql_export_file
 
   else
     # sqlite
 
     log " creating ghost db archive (sqlite)..."
-    cd $GHOST_LOCATION/content/data && sqlite3 $SQLITE_DB_NAME ".backup temp.db" && gzip -c temp.db > $export_file && rm temp.db
+    cd $GHOST_LOCATION/content/data && sqlite3 $SQLITE_DB_NAME ".backup temp.db" && 
+      if [ "$COMPRESS_DB_DUMP" == "true" ]; then gzip -c temp.db > $export_file ; else mv temp.db > $sql_export_file; fi && rm temp.db
   fi
 
-  log " ...completed: $export_file"
+  log " ...completed: $sql_export_file"
 }
 
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhost () {
   log " creating ghost content files archive..."
-  export_file="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.tar.gz"
+  template_export_file="$BACKUP_LOCATION/${backupfile_template}.tar.gz"
   #Exclude  /content/data  (we back that up separately), current and versions (Ghost source files from docker image), and content.orig (created when Ghost was built)
-  tar cfz $export_file --directory=$GHOST_LOCATION --exclude='content/data' --exclude='content.orig' --exclude='current' --exclude='versions' . 2>&1 | tee -a $LOG_LOCATION
-  log " ...completed: $export_file"
+  tar cfz $template_export_file --directory=$GHOST_LOCATION --exclude='content/data' --exclude='content.orig' --exclude='current' --exclude='versions' . 2>&1 | tee -a $LOG_LOCATION
+  log " ...completed: $template_export_file"
 }
 
 # Backup the ghost static files (images, themes, apps etc) but not the /data directory (the db backup handles that)
 backupGhostJsonFile () {
-  export_file="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.json"
+  if [ $API_TOKEN_AVAILABLE = true ]; then
+    json_export_file="$BACKUP_LOCATION/${backupfile_template}.json"
 
-  checkGhostAvailable
-  checkGhostAdminCookie
+    checkGhostAvailable
+    checkGhostAdminCookie
 
-  if [ $GHOST_CONTAINER_LINKED = true ]; then
-    log " ...downloading ghost json file..."
-    curl --silent $export_file -b $GHOST_COOKIE_FILE \
-      -H "Origin: https://$GHOST_SERVICE_NAME" \
-      "http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v3/admin/db" 
-    log " ...completed: $export_file"
-  else
-    log " ...skipping: Your ghost service was not found on the network. Configure GHOST_SERVICE_NAME and GHOST_SERVICE_PORT"
+    if [ $GHOST_CONTAINER_LINKED = true ]; then
+      log " ...downloading ghost json file..."
+      curl --silent $json_export_file -b $GHOST_COOKIE_FILE \
+        -H "Origin: https://$GHOST_SERVICE_NAME" \
+        "http://$GHOST_SERVICE_NAME:$GHOST_SERVICE_PORT/ghost/api/v3/admin/db" 
+      log " ...completed: $json_export_file"
+    else
+      log " ...skipping: Your ghost service was not found on the network. Configure GHOST_SERVICE_NAME and GHOST_SERVICE_PORT"
+    fi
   fi
 
 }
@@ -85,7 +97,8 @@ include_db=true
 include_files=true
 include_json_file=true
 purge=true
-while getopts "FDJP" opt; do
+
+while getopts "FDJPN:" opt; do
   case $opt in
     D)
       include_db=false
@@ -102,6 +115,10 @@ while getopts "FDJP" opt; do
     P)
       purge=false
       log "-p set: not purging old backups (limit is set to $BACKUPS_RETAIN_LIMIT)"
+      ;;
+    N)
+      backupfile_template=${OPTARG}
+      log "-N set filename to $backupfile_template"
       ;;
     \?)
       usage
@@ -125,3 +142,8 @@ if [ $purge = true ]; then
 fi
 
 log "completed backup to $BACKUP_LOCATION"
+
+if [ -e /bin/user/postbackup.sh ]; then
+  log "calling user/postbackup.sh  $sql_export_file $template_export_file $json_export_file"
+  . /bin/user/postbackup.sh "$sql_export_file" "$template_export_file" "$json_export_file"
+fi

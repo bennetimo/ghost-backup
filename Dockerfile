@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:bullseye
 
 LABEL org.opencontainers.image.authors="Tim Bennett"
 
@@ -7,7 +7,9 @@ WORKDIR /usr/app
 
 RUN \
   apt-get update && \
-  apt-get install -y mysql-client cron sqlite3 curl jq netcat
+  apt-get install -y --no-install-recommends wget cron sqlite3 curl jq netcat mariadb-client && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # -----------------------
 # Default configuration
@@ -57,6 +59,9 @@ ENV GHOST_COOKIE_FILE="/tmp/ghost-cookie.txt"
 # Name of the ghost session cookie expected
 ENV GHOST_ADMIN_COOKIE_NAME="ghost-admin-api-session"
 
+# Set to false to disable compressing DB dumps
+ENV COMPRESS_DB_DUMP=true
+
 # -----------------------
 
 RUN mkdir $BACKUP_LOCATION
@@ -74,8 +79,8 @@ COPY common.sh /bin/common.sh
 RUN chmod +x /bin/backup
 RUN chmod +x /bin/restore
 
-# Clean up
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Create user scripts folder
+RUN mkdir /bin/user
 
 ENTRYPOINT ["/entrypoint.sh"]
 
