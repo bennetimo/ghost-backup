@@ -70,4 +70,3 @@ checkGhostAdminCookie () {
 
 # Run before both the backup and restore scripts
 checkMysqlAvailable
-createGhostAdminCookie
