@@ -41,6 +41,7 @@ backupGhost () {
 backupGhostJsonFile () {
   export_file="$BACKUP_LOCATION/$BACKUP_FILE_PREFIX-ghost_$NOW.json"
 
+  createGhostAdminCookie
   checkGhostAvailable
   checkGhostAdminCookie
 

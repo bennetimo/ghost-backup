@@ -50,9 +50,9 @@ restoreGhost () {
 # Restore the database from the given json file
 restoreGhostJsonFile () {
   RESTORE_FILE=$1
-
+  
   log "restoring data from ghost json export file: $RESTORE_FILE"
-
+  createGhostAdminCookie
   checkGhostAvailable
   checkGhostAdminCookie
 
